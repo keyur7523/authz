@@ -13,10 +13,11 @@ export function useDecideRequest() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: (vars: { id: string; mode: "approve" | "deny" }) =>
-      requestsApi.decide(vars.id, vars.mode),
+    mutationFn: (vars: { id: string; mode: "approve" | "deny"; note?: string }) =>
+      requestsApi.decide(vars.id, vars.mode, vars.note),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["requests"] });
+      qc.invalidateQueries({ queryKey: ["audit"] });
     },
   });
 }

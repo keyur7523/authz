@@ -4,7 +4,7 @@ import { Card } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
 import { useToast } from "../hooks/useToast";
-import { mockRequests, type AccessRequest } from "../components/requests/requests.mock";
+import { useRequests, useDecideRequest } from "../api/hooks/useRequests";
 import { RequestsTable } from "../components/requests/RequestsTable";
 import { RequestDetail } from "../components/requests/RequestDetail";
 import { DecisionModal } from "../components/requests/DecisionModal";
@@ -13,11 +13,12 @@ type Tab = "pending" | "approved" | "denied" | "all";
 
 export function Requests() {
   const toast = useToast();
+  const { data = [], isLoading } = useRequests();
+  const decideMutation = useDecideRequest();
+
   const [tab, setTab] = useState<Tab>("pending");
   const [q, setQ] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(mockRequests[0]?.id ?? null);
-
-  const [data, setData] = useState<AccessRequest[]>(mockRequests);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [decision, setDecision] = useState<{ open: boolean; mode: "approve" | "deny" }>({
     open: false,
     mode: "approve",
@@ -72,21 +73,22 @@ export function Requests() {
     [data, selectedId]
   );
 
+  // Auto-select first row when data loads and nothing selected
+  useMemo(() => {
+    if (!selectedId && data.length > 0) {
+      setSelectedId(data[0].id);
+    }
+  }, [data, selectedId]);
+
   const decide = (mode: "approve" | "deny") => {
     if (!selected || selected.status !== "pending") return;
     setDecision({ open: true, mode });
   };
 
-  const confirmDecision = () => {
+  const confirmDecision = (note: string) => {
     if (!selected) return;
 
-    setData((prev) =>
-      prev.map((r) =>
-        r.id === selected.id
-          ? { ...r, status: decision.mode === "approve" ? "approved" : "denied" }
-          : r
-      )
-    );
+    decideMutation.mutate({ id: selected.id, mode: decision.mode, note });
 
     toast.success(
       decision.mode === "approve" ? "Request approved" : "Request denied",
@@ -144,7 +146,7 @@ export function Requests() {
         open={decision.open}
         mode={decision.mode}
         onClose={() => setDecision((d) => ({ ...d, open: false }))}
-        onConfirm={() => confirmDecision()}
+        onConfirm={(note) => confirmDecision(note)}
       />
     </div>
   );
