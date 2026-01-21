@@ -7,6 +7,8 @@ import { mockAudit } from "../components/audit/audit.mock";
 import { AuditTable } from "../components/audit/AuditTable";
 import { AuditDetail } from "../components/audit/AuditDetail";
 import { exportAuditCsv } from "../components/audit/exportCsv";
+import { Field } from "../components/ui/Field";
+import { Select } from "../components/ui/Select";
 
 type DecisionFilter = "all" | "allow" | "deny" | "none";
 type TimePreset = "all" | "1h" | "24h" | "7d";
@@ -99,34 +101,32 @@ export function Audit() {
 
       <Card className="p-4 md:p-4">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <Input
-            ref={searchRef}
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search audit… (Press /)"
-          />
+          <Field label="Search">
+            <Input
+              ref={searchRef}
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search audit… (Press /)"
+            />
+          </Field>
 
-          <select
-            className="h-10 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
-            value={decision}
-            onChange={(e) => setDecision(e.target.value as DecisionFilter)}
-          >
-            <option value="all">Decision: All</option>
-            <option value="allow">Decision: Allow</option>
-            <option value="deny">Decision: Deny</option>
-            <option value="none">Decision: None</option>
-          </select>
+          <Field label="Decision">
+            <Select value={decision} onChange={(e) => setDecision(e.target.value as DecisionFilter)}>
+              <option value="all">All</option>
+              <option value="allow">Allow</option>
+              <option value="deny">Deny</option>
+              <option value="none">None</option>
+            </Select>
+          </Field>
 
-          <select
-            className="h-10 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
-            value={time}
-            onChange={(e) => setTime(e.target.value as TimePreset)}
-          >
-            <option value="1h">Time: Last hour</option>
-            <option value="24h">Time: Last 24h</option>
-            <option value="7d">Time: Last 7d</option>
-            <option value="all">Time: All</option>
-          </select>
+          <Field label="Time range">
+            <Select value={time} onChange={(e) => setTime(e.target.value as TimePreset)}>
+              <option value="1h">Last hour</option>
+              <option value="24h">Last 24h</option>
+              <option value="7d">Last 7d</option>
+              <option value="all">All</option>
+            </Select>
+          </Field>
         </div>
       </Card>
 

@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
-import { Input } from "../../components/ui/Input";
+import { Textarea } from "../../components/ui/Textarea";
+import { Field } from "../../components/ui/Field";
 
 export function DecisionModal({
   open,
@@ -14,6 +16,7 @@ export function DecisionModal({
   onClose: () => void;
   onConfirm: (note: string) => void;
 }) {
+  const [note, setNote] = useState("");
   const title = mode === "approve" ? "Approve request" : "Deny request";
 
   return (
@@ -41,7 +44,13 @@ export function DecisionModal({
               </div>
 
               <div className="mt-4">
-                <Input placeholder="Add a note (optional)..." />
+                <Field label="Note" hint="Optional. Stored in audit trail.">
+                  <Textarea
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Add a note..."
+                  />
+                </Field>
               </div>
 
               <div className="mt-4 flex justify-end gap-2">
@@ -50,7 +59,7 @@ export function DecisionModal({
                 </Button>
                 <Button
                   variant={mode === "approve" ? "success" : "danger"}
-                  onClick={() => onConfirm("")}
+                  onClick={() => onConfirm(note)}
                 >
                   Confirm
                 </Button>
