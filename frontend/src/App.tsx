@@ -5,6 +5,7 @@ import { NotFound } from "./pages/NotFound";
 import { Roles } from "./pages/Roles";
 import { RoleDetail } from "./pages/RoleDetail";
 import { Permissions } from "./pages/Permissions";
+import { Requests } from "./pages/Requests";
 
 export function App() {
   return (
@@ -15,6 +16,7 @@ export function App() {
         <Route path="/admin/roles" element={<Roles />} />
         <Route path="/admin/roles/:roleId" element={<RoleDetail />} />
         <Route path="/admin/permissions" element={<Permissions />} />
+        <Route path="/admin/requests" element={<Requests />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
