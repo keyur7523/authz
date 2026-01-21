@@ -3,22 +3,32 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { Card } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
-import { mockPermissions } from "../components/permissions/permissions.mock";
+import { usePermissions } from "../api/hooks/usePermissions";
+import { useAllRolePermissions } from "../api/hooks/useRolePermissions";
 import { PermissionsTable } from "../components/permissions/PermissionsTable";
 import { PermissionDetail } from "../components/permissions/PermissionDetail";
 import { AssignPermissionModal } from "../components/permissions/AssignPermissionModal";
 
 export function Permissions() {
+  const { data: permissions = [] } = usePermissions();
+  const { data: rolePermissions = {} } = useAllRolePermissions();
+
   const [q, setQ] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [assignOpen, setAssignOpen] = useState(false);
 
-  // permId -> roleIds (mock in-memory mapping)
-  const [assigned, setAssigned] = useState<Record<string, string[]>>({
-    p_roles_read: ["role_viewer", "role_admin"],
-    p_roles_write: ["role_admin"],
-  });
+  // Compute permissionId -> roleIds[] from roleId -> permissionIds[]
+  const assignedByPermission = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const [roleId, permIds] of Object.entries(rolePermissions)) {
+      for (const permId of permIds) {
+        if (!map[permId]) map[permId] = [];
+        map[permId].push(roleId);
+      }
+    }
+    return map;
+  }, [rolePermissions]);
 
   const searchRef = useRef<HTMLInputElement | null>(null);
 
@@ -44,15 +54,15 @@ export function Permissions() {
 
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase();
-    if (!t) return mockPermissions;
-    return mockPermissions.filter(
+    if (!t) return permissions;
+    return permissions.filter(
       (p) => p.key.toLowerCase().includes(t) || p.description.toLowerCase().includes(t)
     );
-  }, [q]);
+  }, [q, permissions]);
 
   const selected = useMemo(
-    () => mockPermissions.find((p) => p.id === selectedId) ?? null,
-    [selectedId]
+    () => permissions.find((p) => p.id === selectedId) ?? null,
+    [selectedId, permissions]
   );
 
   const toggleCheck = (id: string) => {
@@ -75,15 +85,8 @@ export function Permissions() {
     checked.size > 0 ? Array.from(checked) : selectedId ? [selectedId] : [];
 
   const applyAssign = (roleId: string) => {
-    setAssigned((prev) => {
-      const next = { ...prev };
-      for (const pid of targetPermissionIds) {
-        const current = new Set(next[pid] ?? []);
-        current.add(roleId);
-        next[pid] = Array.from(current);
-      }
-      return next;
-    });
+    // Note: This is view-only for now. Actual assignment is done via RolePermissionsEditor.
+    // Close modal and clear selection.
     setAssignOpen(false);
     setChecked(new Set());
   };
@@ -130,7 +133,7 @@ export function Permissions() {
         <div className="lg:col-span-1">
           <PermissionDetail
             permission={selected}
-            assignedRoleIds={selected ? assigned[selected.id] ?? [] : []}
+            assignedRoleIds={selected ? assignedByPermission[selected.id] ?? [] : []}
             onAssignClick={() => setAssignOpen(true)}
           />
         </div>
@@ -140,7 +143,7 @@ export function Permissions() {
         open={assignOpen}
         onClose={() => setAssignOpen(false)}
         targetPermissionIds={targetPermissionIds}
-        assignedByPermission={assigned}
+        assignedByPermission={assignedByPermission}
         onApply={applyAssign}
       />
     </div>

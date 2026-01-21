@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { RoleHeader } from "../components/roles/RoleHeader";
-import { RolePermissions } from "../components/roles/RolePermissions";
+import { RolePermissionsEditor } from "../components/roles/RolePermissionsEditor";
 import { RoleUsers } from "../components/roles/RoleUsers";
 
 export function RoleDetail() {
@@ -18,7 +18,7 @@ export function RoleDetail() {
       <RoleHeader name={role.name} description={role.description} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <RolePermissions />
+        <RolePermissionsEditor roleId={roleId!} />
         <RoleUsers />
       </div>
     </div>

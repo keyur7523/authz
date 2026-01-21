@@ -55,3 +55,36 @@ export const auditApi = {
   list: async (): Promise<AuditEvent[]> =>
     apiCall(() => mockDb.get().audit, { delayMs: 250 }),
 };
+
+export const rolePermissionsApi = {
+  getAll: async (): Promise<Record<string, string[]>> =>
+    apiCall(() => mockDb.get().rolePermissions, { delayMs: 200 }),
+
+  getForRole: async (roleId: string) =>
+    apiCall(() => mockDb.get().rolePermissions[roleId] ?? [], { delayMs: 200 }),
+
+  setForRole: async (roleId: string, permissionIds: string[], note?: string) =>
+    apiCall(() => {
+      mockDb.update((db) => {
+        const rolePermissions = { ...db.rolePermissions, [roleId]: permissionIds };
+
+        const auditEvent: AuditEvent = {
+          id: `evt_${Math.floor(Math.random() * 1_000_000)}`,
+          ts: new Date().toISOString(),
+          actor: { id: "u_admin", name: "Admin User", email: "admin@company.com" },
+          action: "assign_permission",
+          resource: { type: "role", id: roleId },
+          scope: "org:heart-artery-vein",
+          ip: "10.0.2.15",
+          metadata: {
+            note: note ?? "",
+            permissionIds: permissionIds.join(","),
+          },
+        };
+
+        return { ...db, rolePermissions, audit: [auditEvent, ...db.audit] };
+      });
+
+      return { roleId, permissionIds };
+    }, { delayMs: 300 }),
+};
