@@ -5,6 +5,7 @@ import { cn } from "../lib/utils";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/admin/roles", label: "Roles", icon: ShieldCheck },
 ];
 
 export function Sidebar({
