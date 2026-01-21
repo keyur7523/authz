@@ -1,7 +1,7 @@
 import { Menu, Sun, Moon } from "lucide-react";
 import { useThemeStore } from "../stores/themeStore";
 
-export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
+export function Topbar({ onMenuClick, onCommand }: { onMenuClick: () => void; onCommand: () => void }) {
   const { resolvedTheme, setTheme } = useThemeStore();
 
   return (
@@ -17,9 +17,12 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="hidden sm:inline text-xs text-[var(--color-text-muted)]">
+        <button
+          onClick={onCommand}
+          className="hidden sm:inline rounded px-3 py-2 text-xs border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]"
+        >
           Cmd/Ctrl + K
-        </span>
+        </button>
         <button
           className="rounded p-2 hover:bg-[var(--color-surface-hover)]"
           onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
