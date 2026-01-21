@@ -4,6 +4,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { NotFound } from "./pages/NotFound";
 import { Roles } from "./pages/Roles";
 import { RoleDetail } from "./pages/RoleDetail";
+import { Permissions } from "./pages/Permissions";
 
 export function App() {
   return (
@@ -13,6 +14,7 @@ export function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/admin/roles" element={<Roles />} />
         <Route path="/admin/roles/:roleId" element={<RoleDetail />} />
+        <Route path="/admin/permissions" element={<Permissions />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
