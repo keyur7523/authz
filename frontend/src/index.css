@@ -1,0 +1,176 @@
+@import "tailwindcss";
+
+@theme {
+  /* ============ DARK MODE (Default) ============ */
+  
+  /* Base backgrounds */
+  --color-bg: #0a0e1a;              /* Deep navy - main background */
+  --color-surface: #111827;          /* Slate 900 - cards, panels */
+  --color-surface-hover: #1f2937;    /* Slate 800 - hover states */
+  --color-surface-active: #374151;   /* Slate 700 - active/pressed */
+  
+  /* Elevated surfaces (modals, dropdowns) */
+  --color-elevated: #1e293b;         /* Slate 800 - floating elements */
+  --color-elevated-hover: #334155;   /* Slate 700 */
+  
+  /* Borders */
+  --color-border: #1e3a5f;           /* Blue-tinted border */
+  --color-border-muted: #1e293b;     /* Subtle dividers */
+  --color-border-focus: #3b82f6;     /* Focus rings */
+  
+  /* Text */
+  --color-text: #f8fafc;             /* Slate 50 - primary text */
+  --color-text-secondary: #94a3b8;   /* Slate 400 - secondary */
+  --color-text-muted: #64748b;       /* Slate 500 - muted/disabled */
+  --color-text-inverse: #0f172a;     /* For light backgrounds */
+  
+  /* Primary accent (actions, links, focus) */
+  --color-accent: #3b82f6;           /* Blue 500 */
+  --color-accent-hover: #2563eb;     /* Blue 600 */
+  --color-accent-muted: #1d4ed8;     /* Blue 700 - subtle accent bg */
+  --color-accent-subtle: rgba(59, 130, 246, 0.1); /* Blue overlay */
+  
+  /* Secondary accent (less prominent actions) */
+  --color-secondary: #6366f1;        /* Indigo 500 */
+  --color-secondary-hover: #4f46e5;  /* Indigo 600 */
+  
+  /* Semantic: Success */
+  --color-success: #10b981;          /* Emerald 500 */
+  --color-success-hover: #059669;    /* Emerald 600 */
+  --color-success-muted: rgba(16, 185, 129, 0.1);
+  --color-success-text: #34d399;     /* Emerald 400 */
+  
+  /* Semantic: Error/Danger */
+  --color-error: #ef4444;            /* Red 500 */
+  --color-error-hover: #dc2626;      /* Red 600 */
+  --color-error-muted: rgba(239, 68, 68, 0.1);
+  --color-error-text: #f87171;       /* Red 400 */
+  
+  /* Semantic: Warning */
+  --color-warning: #f59e0b;          /* Amber 500 */
+  --color-warning-hover: #d97706;    /* Amber 600 */
+  --color-warning-muted: rgba(245, 158, 11, 0.1);
+  --color-warning-text: #fbbf24;     /* Amber 400 */
+  
+  /* Semantic: Info */
+  --color-info: #06b6d4;             /* Cyan 500 */
+  --color-info-hover: #0891b2;       /* Cyan 600 */
+  --color-info-muted: rgba(6, 182, 212, 0.1);
+  --color-info-text: #22d3ee;        /* Cyan 400 */
+  
+  /* Status colors (for badges, indicators) */
+  --color-pending: #f59e0b;          /* Amber - pending/waiting */
+  --color-approved: #10b981;         /* Green - approved/active */
+  --color-denied: #ef4444;           /* Red - denied/rejected */
+  --color-expired: #64748b;          /* Gray - expired/inactive */
+  
+  /* Special */
+  --color-code-bg: #1e293b;          /* Code blocks */
+  --color-selection: rgba(59, 130, 246, 0.3);
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
+  
+  /* Border radius */
+  --radius-sm: 0.375rem;   /* 6px - buttons, inputs */
+  --radius-md: 0.5rem;     /* 8px - cards */
+  --radius-lg: 0.75rem;    /* 12px - modals */
+  --radius-xl: 1rem;       /* 16px - large containers */
+  --radius-full: 9999px;   /* Pills, avatars */
+}
+
+/* ============ LIGHT MODE ============ */
+.light {
+  --color-bg: #f8fafc;               /* Slate 50 */
+  --color-surface: #ffffff;          /* White */
+  --color-surface-hover: #f1f5f9;    /* Slate 100 */
+  --color-surface-active: #e2e8f0;   /* Slate 200 */
+  
+  --color-elevated: #ffffff;
+  --color-elevated-hover: #f8fafc;
+  
+  --color-border: #e2e8f0;           /* Slate 200 */
+  --color-border-muted: #f1f5f9;     /* Slate 100 */
+  --color-border-focus: #3b82f6;
+  
+  --color-text: #0f172a;             /* Slate 900 */
+  --color-text-secondary: #475569;   /* Slate 600 */
+  --color-text-muted: #94a3b8;       /* Slate 400 */
+  --color-text-inverse: #f8fafc;
+  
+  --color-accent: #2563eb;           /* Blue 600 - darker for light bg */
+  --color-accent-hover: #1d4ed8;     /* Blue 700 */
+  --color-accent-muted: #dbeafe;     /* Blue 100 */
+  --color-accent-subtle: rgba(37, 99, 235, 0.05);
+  
+  --color-secondary: #4f46e5;
+  --color-secondary-hover: #4338ca;
+  
+  --color-success: #059669;
+  --color-success-muted: rgba(5, 150, 105, 0.1);
+  --color-success-text: #059669;
+  
+  --color-error: #dc2626;
+  --color-error-muted: rgba(220, 38, 38, 0.1);
+  --color-error-text: #dc2626;
+  
+  --color-warning: #d97706;
+  --color-warning-muted: rgba(217, 119, 6, 0.1);
+  --color-warning-text: #d97706;
+  
+  --color-info: #0891b2;
+  --color-info-muted: rgba(8, 145, 178, 0.1);
+  --color-info-text: #0891b2;
+  
+  --color-code-bg: #f1f5f9;
+  --color-selection: rgba(37, 99, 235, 0.2);
+  
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.1);
+}
+
+/* ============ GLOBAL STYLES ============ */
+
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+}
+
+::selection {
+  background: var(--color-selection);
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
