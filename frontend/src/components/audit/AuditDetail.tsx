@@ -17,18 +17,20 @@ export function AuditDetail({ event }: { event: AuditEvent | null }) {
   return (
     <Card>
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold">{event.action}</div>
-          <div className="text-sm text-[var(--color-text-muted)]">{event.id}</div>
+          <div className="text-sm text-[var(--color-text-muted)] truncate" title={event.id}>
+            {event.id}
+          </div>
         </div>
         {event.decision && <Badge>{event.decision}</Badge>}
       </div>
 
       <div className="mt-4 space-y-2 text-sm">
         <Row k="Timestamp" v={new Date(event.ts).toLocaleString()} />
-        <Row k="Actor" v={`${event.actor.name} (${event.actor.email})`} />
-        <Row k="Resource" v={`${event.resource.type}:${event.resource.id}`} />
-        <Row k="Scope" v={event.scope} />
+        <Row k="Actor" v={`${event.actor.name} (${event.actor.email})`} truncate />
+        <Row k="Resource" v={`${event.resource.type}:${event.resource.id}`} truncate />
+        <Row k="Scope" v={event.scope} truncate />
         {event.ip && <Row k="IP" v={event.ip} />}
       </div>
 
@@ -44,11 +46,16 @@ export function AuditDetail({ event }: { event: AuditEvent | null }) {
   );
 }
 
-function Row({ k, v }: { k: string; v: string }) {
+function Row({ k, v, truncate }: { k: string; v: string; truncate?: boolean }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <div className="text-[var(--color-text-muted)]">{k}</div>
-      <div className="text-right text-[var(--color-text)]">{v}</div>
+      <div className="text-[var(--color-text-muted)] shrink-0">{k}</div>
+      <div
+        className={`text-right text-[var(--color-text)] ${truncate ? "truncate" : ""}`}
+        title={truncate ? v : undefined}
+      >
+        {v}
+      </div>
     </div>
   );
 }

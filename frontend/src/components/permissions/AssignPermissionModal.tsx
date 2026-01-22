@@ -9,7 +9,7 @@ export function AssignPermissionModal({
   open,
   onClose,
   targetPermissionIds,
-  assignedByPermission,
+  assignedByPermission: _assignedByPermission,
   onApply,
 }: {
   open: boolean;

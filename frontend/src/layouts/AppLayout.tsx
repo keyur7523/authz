@@ -1,4 +1,4 @@
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useMemo, useState } from "react";
 import { Sidebar } from "./Sidebar";
@@ -13,7 +13,6 @@ export function AppLayout() {
   const [cmdOpen, setCmdOpen] = useState(false);
 
   const navigate = useNavigate();
-  const location = useLocation();
 
   const { resolvedTheme, setTheme } = useThemeStore();
   const { data: auditRows } = useAudit();

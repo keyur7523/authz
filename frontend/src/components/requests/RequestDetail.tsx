@@ -35,8 +35,8 @@ export function RequestDetail({
       </div>
 
       <div className="mt-4 space-y-2 text-sm">
-        <Row k="Role" v={`${request.roleName} (${request.roleId})`} />
-        <Row k="Scope" v={request.scope} />
+        <Row k="Role" v={`${request.roleName} (${request.roleId})`} truncate />
+        <Row k="Scope" v={request.scope} truncate />
         <Row k="Reason" v={request.reason} />
         <Row k="Status" v={request.status} />
       </div>
@@ -61,11 +61,16 @@ export function RequestDetail({
   );
 }
 
-function Row({ k, v }: { k: string; v: string }) {
+function Row({ k, v, truncate }: { k: string; v: string; truncate?: boolean }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <div className="text-[var(--color-text-muted)]">{k}</div>
-      <div className="text-right text-[var(--color-text)]">{v}</div>
+      <div className="text-[var(--color-text-muted)] shrink-0">{k}</div>
+      <div
+        className={`text-right text-[var(--color-text)] ${truncate ? "truncate" : ""}`}
+        title={truncate ? v : undefined}
+      >
+        {v}
+      </div>
     </div>
   );
 }

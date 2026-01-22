@@ -3,6 +3,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { Card } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
+import { QueryState } from "../components/ui/QueryState";
 import { useToast } from "../hooks/useToast";
 import { useRequests, useDecideRequest } from "../api/hooks/useRequests";
 import { RequestsTable } from "../components/requests/RequestsTable";
@@ -13,8 +14,10 @@ type Tab = "pending" | "approved" | "denied" | "all";
 
 export function Requests() {
   const toast = useToast();
-  const { data = [], isLoading } = useRequests();
+  const requestsQuery = useRequests();
   const decideMutation = useDecideRequest();
+
+  const data = requestsQuery.data ?? [];
 
   const [tab, setTab] = useState<Tab>("pending");
   const [q, setQ] = useState("");
@@ -99,56 +102,63 @@ export function Requests() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-lg font-semibold">Access Requests</div>
-          <div className="mt-1 text-sm text-[var(--color-text-muted)]">
-            Review and approve access requests.
+    <QueryState
+      isLoading={requestsQuery.isLoading}
+      isError={requestsQuery.isError}
+      error={requestsQuery.error}
+      onRetry={() => requestsQuery.refetch()}
+    >
+      <div className="space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-lg font-semibold">Access Requests</div>
+            <div className="mt-1 text-sm text-[var(--color-text-muted)]">
+              Review and approve access requests.
+            </div>
           </div>
         </div>
-      </div>
 
-      <Card className="p-4 md:p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-2">
-            <TabButton active={tab === "pending"} onClick={() => setTab("pending")}>Pending</TabButton>
-            <TabButton active={tab === "approved"} onClick={() => setTab("approved")}>Approved</TabButton>
-            <TabButton active={tab === "denied"} onClick={() => setTab("denied")}>Denied</TabButton>
-            <TabButton active={tab === "all"} onClick={() => setTab("all")}>All</TabButton>
+        <Card className="p-4 md:p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex gap-2">
+              <TabButton active={tab === "pending"} onClick={() => setTab("pending")}>Pending</TabButton>
+              <TabButton active={tab === "approved"} onClick={() => setTab("approved")}>Approved</TabButton>
+              <TabButton active={tab === "denied"} onClick={() => setTab("denied")}>Denied</TabButton>
+              <TabButton active={tab === "all"} onClick={() => setTab("all")}>All</TabButton>
+            </div>
+
+            <div className="w-full sm:w-80">
+              <Input
+                ref={searchRef}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search requests… (Press /)"
+              />
+            </div>
           </div>
+        </Card>
 
-          <div className="w-full sm:w-80">
-            <Input
-              ref={searchRef}
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search requests… (Press /)"
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <RequestsTable rows={rows} selectedId={selectedId} onSelect={setSelectedId} />
+          </div>
+          <div className="lg:col-span-1">
+            <RequestDetail
+              request={selected}
+              onApprove={() => decide("approve")}
+              onDeny={() => decide("deny")}
             />
           </div>
         </div>
-      </Card>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <RequestsTable rows={rows} selectedId={selectedId} onSelect={setSelectedId} />
-        </div>
-        <div className="lg:col-span-1">
-          <RequestDetail
-            request={selected}
-            onApprove={() => decide("approve")}
-            onDeny={() => decide("deny")}
-          />
-        </div>
+        <DecisionModal
+          open={decision.open}
+          mode={decision.mode}
+          onClose={() => setDecision((d) => ({ ...d, open: false }))}
+          onConfirm={(note) => confirmDecision(note)}
+        />
       </div>
-
-      <DecisionModal
-        open={decision.open}
-        mode={decision.mode}
-        onClose={() => setDecision((d) => ({ ...d, open: false }))}
-        onConfirm={(note) => confirmDecision(note)}
-      />
-    </div>
+    </QueryState>
   );
 }
 

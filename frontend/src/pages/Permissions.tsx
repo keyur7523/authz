@@ -3,6 +3,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { Card } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
+import { QueryState } from "../components/ui/QueryState";
 import { usePermissions } from "../api/hooks/usePermissions";
 import { useAllRolePermissions } from "../api/hooks/useRolePermissions";
 import { PermissionsTable } from "../components/permissions/PermissionsTable";
@@ -10,8 +11,11 @@ import { PermissionDetail } from "../components/permissions/PermissionDetail";
 import { AssignPermissionModal } from "../components/permissions/AssignPermissionModal";
 
 export function Permissions() {
-  const { data: permissions = [] } = usePermissions();
-  const { data: rolePermissions = {} } = useAllRolePermissions();
+  const permissionsQuery = usePermissions();
+  const rolePermissionsQuery = useAllRolePermissions();
+
+  const permissions = permissionsQuery.data ?? [];
+  const rolePermissions = rolePermissionsQuery.data ?? {};
 
   const [q, setQ] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -60,6 +64,21 @@ export function Permissions() {
     );
   }, [q, permissions]);
 
+  // J/K navigation
+  useHotkeys("j", () => {
+    if (!rows.length) return;
+    const idx = Math.max(0, rows.findIndex((r) => r.id === selectedId));
+    const next = rows[Math.min(rows.length - 1, idx + 1)];
+    if (next) setSelectedId(next.id);
+  });
+
+  useHotkeys("k", () => {
+    if (!rows.length) return;
+    const idx = Math.max(0, rows.findIndex((r) => r.id === selectedId));
+    const prev = rows[Math.max(0, idx - 1)];
+    if (prev) setSelectedId(prev.id);
+  });
+
   const selected = useMemo(
     () => permissions.find((p) => p.id === selectedId) ?? null,
     [selectedId, permissions]
@@ -84,68 +103,82 @@ export function Permissions() {
   const targetPermissionIds =
     checked.size > 0 ? Array.from(checked) : selectedId ? [selectedId] : [];
 
-  const applyAssign = (roleId: string) => {
+  const applyAssign = (_roleId: string) => {
     // Note: This is view-only for now. Actual assignment is done via RolePermissionsEditor.
     // Close modal and clear selection.
     setAssignOpen(false);
     setChecked(new Set());
   };
 
+  const isLoading = permissionsQuery.isLoading || rolePermissionsQuery.isLoading;
+  const isError = permissionsQuery.isError || rolePermissionsQuery.isError;
+  const error = permissionsQuery.error || rolePermissionsQuery.error;
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-lg font-semibold">Permissions</div>
-          <div className="mt-1 text-sm text-[var(--color-text-muted)]">
-            Manage permissions and assign them to roles.
+    <QueryState
+      isLoading={isLoading}
+      isError={isError}
+      error={error}
+      onRetry={() => {
+        permissionsQuery.refetch();
+        rolePermissionsQuery.refetch();
+      }}
+    >
+      <div className="space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-lg font-semibold">Permissions</div>
+            <div className="mt-1 text-sm text-[var(--color-text-muted)]">
+              Manage permissions and assign them to roles.
+            </div>
+          </div>
+
+          <Button
+            variant="secondary"
+            disabled={targetPermissionIds.length === 0}
+            onClick={() => setAssignOpen(true)}
+          >
+            Assign ({targetPermissionIds.length || 0})
+          </Button>
+        </div>
+
+        <Card className="p-4 md:p-4">
+          <Input
+            ref={searchRef}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search permissions… (Press /)"
+          />
+        </Card>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <PermissionsTable
+              rows={rows}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              checkedIds={checked}
+              onToggleCheck={toggleCheck}
+              onToggleAll={toggleAll}
+            />
+          </div>
+          <div className="lg:col-span-1">
+            <PermissionDetail
+              permission={selected}
+              assignedRoleIds={selected ? assignedByPermission[selected.id] ?? [] : []}
+              onAssignClick={() => setAssignOpen(true)}
+            />
           </div>
         </div>
 
-        <Button
-          variant="secondary"
-          disabled={targetPermissionIds.length === 0}
-          onClick={() => setAssignOpen(true)}
-        >
-          Assign ({targetPermissionIds.length || 0})
-        </Button>
-      </div>
-
-      <Card className="p-4 md:p-4">
-        <Input
-          ref={searchRef}
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search permissions… (Press /)"
+        <AssignPermissionModal
+          open={assignOpen}
+          onClose={() => setAssignOpen(false)}
+          targetPermissionIds={targetPermissionIds}
+          assignedByPermission={assignedByPermission}
+          onApply={applyAssign}
         />
-      </Card>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <PermissionsTable
-            rows={rows}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            checkedIds={checked}
-            onToggleCheck={toggleCheck}
-            onToggleAll={toggleAll}
-          />
-        </div>
-        <div className="lg:col-span-1">
-          <PermissionDetail
-            permission={selected}
-            assignedRoleIds={selected ? assignedByPermission[selected.id] ?? [] : []}
-            onAssignClick={() => setAssignOpen(true)}
-          />
-        </div>
       </div>
-
-      <AssignPermissionModal
-        open={assignOpen}
-        onClose={() => setAssignOpen(false)}
-        targetPermissionIds={targetPermissionIds}
-        assignedByPermission={assignedByPermission}
-        onApply={applyAssign}
-      />
-    </div>
+    </QueryState>
   );
 }

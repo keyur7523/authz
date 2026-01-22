@@ -51,10 +51,15 @@ export function RequestsTable({
 
             <div className="col-span-3">
               <div className="font-medium">{r.roleName}</div>
-              <div className="text-xs text-[var(--color-text-muted)]">{r.roleId}</div>
+              <div className="text-xs text-[var(--color-text-muted)] truncate" title={r.roleId}>
+                {r.roleId}
+              </div>
             </div>
 
-            <div className="col-span-3 hidden sm:block text-[var(--color-text-secondary)]">
+            <div
+              className="col-span-3 hidden sm:block text-[var(--color-text-secondary)] truncate"
+              title={r.scope}
+            >
               {r.scope}
             </div>
 

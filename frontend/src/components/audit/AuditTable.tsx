@@ -49,7 +49,10 @@ export function AuditTable({
               {e.decision && <Badge className={decisionBadge}>{e.decision}</Badge>}
             </div>
 
-            <div className="col-span-3 hidden sm:block text-[var(--color-text-secondary)]">
+            <div
+              className="col-span-3 hidden sm:block text-[var(--color-text-secondary)] truncate"
+              title={`${e.resource.type}:${e.resource.id}`}
+            >
               {e.resource.type}:{e.resource.id}
             </div>
 

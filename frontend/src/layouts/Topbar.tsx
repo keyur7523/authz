@@ -10,6 +10,7 @@ export function Topbar({ onMenuClick, onCommand }: { onMenuClick: () => void; on
         <button
           className="rounded p-2 hover:bg-[var(--color-surface-hover)] md:hidden"
           onClick={onMenuClick}
+          aria-label="Open menu"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -26,6 +27,7 @@ export function Topbar({ onMenuClick, onCommand }: { onMenuClick: () => void; on
         <button
           className="rounded p-2 hover:bg-[var(--color-surface-hover)]"
           onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+          aria-label={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
         >
           {resolvedTheme === "dark" ? (
             <Sun className="h-4 w-4" />
