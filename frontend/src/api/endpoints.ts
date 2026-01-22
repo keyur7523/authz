@@ -3,6 +3,7 @@ import { mockRoles, type RoleRow } from "../components/roles/roles.mock";
 import { mockPermissions, type Permission } from "../components/permissions/permissions.mock";
 import { type AccessRequest } from "../components/requests/requests.mock";
 import { type AuditEvent } from "../components/audit/audit.mock";
+import { type User } from "../components/users/users.mock";
 import { mockDb } from "../store/mockDb";
 
 export const rolesApi = {
@@ -18,6 +19,70 @@ export const permissionsApi = {
     apiCall(() => mockPermissions, { delayMs: 350 }),
 };
 
+export const usersApi = {
+  list: async (): Promise<User[]> =>
+    apiCall(() => mockDb.get().users, { delayMs: 300 }),
+};
+
+export const userRolesApi = {
+  getForUser: async (userId: string): Promise<string[]> =>
+    apiCall(() => mockDb.get().userRoles[userId] ?? [], { delayMs: 200 }),
+
+  assignRole: async (userId: string, roleId: string, reason: string): Promise<{ userId: string; roleId: string }> =>
+    apiCall(() => {
+      // Check if role is high-risk (has write permissions)
+      const rolePerms = mockDb.get().rolePermissions[roleId] ?? [];
+      const isHighRisk = rolePerms.some((p) => p.includes("write"));
+
+      if (isHighRisk) {
+        // Create access request instead of direct assignment
+        const user = mockDb.get().users.find((u) => u.id === userId);
+        const role = mockRoles.find((r) => r.id === roleId);
+
+        const newRequest: AccessRequest = {
+          id: `req_${Math.floor(Math.random() * 1_000_000)}`,
+          requester: { name: user?.name ?? "Unknown", email: user?.email ?? "unknown@company.com" },
+          roleId,
+          roleName: role?.name ?? roleId,
+          scope: "org:heart-artery-vein",
+          reason,
+          createdAt: new Date().toISOString(),
+          status: "pending",
+          risk: "high",
+        };
+
+        mockDb.update((db) => ({
+          ...db,
+          requests: [newRequest, ...db.requests],
+        }));
+
+        throw { message: "High-risk role requires approval", requestId: newRequest.id };
+      }
+
+      // Direct assignment for low-risk roles
+      mockDb.update((db) => {
+        const current = new Set(db.userRoles[userId] ?? []);
+        current.add(roleId);
+        const userRoles = { ...db.userRoles, [userId]: Array.from(current) };
+
+        const auditEvent: AuditEvent = {
+          id: `evt_${Math.floor(Math.random() * 1_000_000)}`,
+          ts: new Date().toISOString(),
+          actor: { id: "u_admin", name: "Admin User", email: "admin@company.com" },
+          action: "assign_permission",
+          resource: { type: "role", id: roleId },
+          scope: "org:heart-artery-vein",
+          ip: "10.0.2.15",
+          metadata: { userId, reason },
+        };
+
+        return { ...db, userRoles, audit: [auditEvent, ...db.audit] };
+      });
+
+      return { userId, roleId };
+    }, { delayMs: 300 }),
+};
+
 export const requestsApi = {
   list: async (): Promise<AccessRequest[]> =>
     apiCall(() => mockDb.get().requests, { delayMs: 300 }),
@@ -27,9 +92,22 @@ export const requestsApi = {
       const status: "approved" | "denied" = mode === "approve" ? "approved" : "denied";
 
       mockDb.update((db) => {
+        const request = db.requests.find((r) => r.id === id);
         const requests = db.requests.map((r) =>
           r.id === id ? { ...r, status } : r
         );
+
+        // If approving, also assign the role to the user
+        let userRoles = db.userRoles;
+        if (mode === "approve" && request) {
+          // Find user by email from requester
+          const user = db.users.find((u) => u.email === request.requester.email);
+          if (user) {
+            const current = new Set(userRoles[user.id] ?? []);
+            current.add(request.roleId);
+            userRoles = { ...userRoles, [user.id]: Array.from(current) };
+          }
+        }
 
         const auditEvent: AuditEvent = {
           id: `evt_${Math.floor(Math.random() * 1_000_000)}`,
@@ -44,7 +122,7 @@ export const requestsApi = {
 
         const audit = [auditEvent, ...db.audit];
 
-        return { ...db, requests, audit };
+        return { ...db, requests, userRoles, audit };
       });
 
       return { id, status };

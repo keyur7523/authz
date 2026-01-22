@@ -1,11 +1,22 @@
 import { NavLink } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { LayoutDashboard, ShieldCheck } from "lucide-react";
+import {
+  LayoutDashboard,
+  ShieldCheck,
+  Key,
+  Users,
+  Inbox,
+  ScrollText,
+} from "lucide-react";
 import { cn } from "../lib/utils";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/admin/roles", label: "Roles", icon: ShieldCheck },
+  { to: "/admin/permissions", label: "Permissions", icon: Key },
+  { to: "/admin/users", label: "Users", icon: Users },
+  { to: "/admin/requests", label: "Requests", icon: Inbox },
+  { to: "/admin/audit", label: "Audit Log", icon: ScrollText },
 ];
 
 export function Sidebar({

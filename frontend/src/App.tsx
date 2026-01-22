@@ -7,6 +7,7 @@ import { RoleDetail } from "./pages/RoleDetail";
 import { Permissions } from "./pages/Permissions";
 import { Requests } from "./pages/Requests";
 import { Audit } from "./pages/Audit";
+import { Users } from "./pages/Users";
 
 export function App() {
   return (
@@ -17,6 +18,7 @@ export function App() {
         <Route path="/admin/roles" element={<Roles />} />
         <Route path="/admin/roles/:roleId" element={<RoleDetail />} />
         <Route path="/admin/permissions" element={<Permissions />} />
+        <Route path="/admin/users" element={<Users />} />
         <Route path="/admin/requests" element={<Requests />} />
         <Route path="/admin/audit" element={<Audit />} />
       </Route>

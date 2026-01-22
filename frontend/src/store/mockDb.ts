@@ -1,10 +1,13 @@
 import { mockRequests, type AccessRequest } from "../components/requests/requests.mock";
 import { mockAudit, type AuditEvent } from "../components/audit/audit.mock";
+import { mockUsers, type User } from "../components/users/users.mock";
 
 type Db = {
   requests: AccessRequest[];
   audit: AuditEvent[];
   rolePermissions: Record<string, string[]>;
+  users: User[];
+  userRoles: Record<string, string[]>;
 };
 
 const KEY = "authz_mock_db_v1";
@@ -16,6 +19,13 @@ const defaultRolePermissions: Record<string, string[]> = {
   role_approver: ["p_roles_read", "p_audit_read"],
 };
 
+const defaultUserRoles: Record<string, string[]> = {
+  u1: ["role_viewer"],
+  u2: ["role_dev"],
+  u3: ["role_viewer"],
+  u4: [],
+};
+
 function load(): Db {
   try {
     const raw = localStorage.getItem(KEY);
@@ -24,6 +34,8 @@ function load(): Db {
         requests: mockRequests,
         audit: mockAudit,
         rolePermissions: defaultRolePermissions,
+        users: mockUsers,
+        userRoles: defaultUserRoles,
       };
     }
     const db = JSON.parse(raw) as Partial<Db>;
@@ -31,12 +43,16 @@ function load(): Db {
       requests: db.requests ?? mockRequests,
       audit: db.audit ?? mockAudit,
       rolePermissions: db.rolePermissions ?? defaultRolePermissions,
+      users: db.users ?? mockUsers,
+      userRoles: db.userRoles ?? defaultUserRoles,
     };
   } catch {
     return {
       requests: mockRequests,
       audit: mockAudit,
       rolePermissions: defaultRolePermissions,
+      users: mockUsers,
+      userRoles: defaultUserRoles,
     };
   }
 }
