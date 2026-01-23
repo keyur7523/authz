@@ -7,10 +7,12 @@ import { useUsers } from "../api/hooks/useUsers";
 import { UsersTable } from "../components/users/UsersTable";
 import { UserDetail } from "../components/users/UserDetail";
 import { AssignRoleModal } from "../components/users/AssignRoleModal";
+import { toUser } from "../components/users/users.mock";
 
 export function Users() {
   const usersQuery = useUsers();
-  const users = usersQuery.data ?? [];
+  const members = usersQuery.data ?? [];
+  const users = useMemo(() => members.map(toUser), [members]);
 
   const [q, setQ] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);

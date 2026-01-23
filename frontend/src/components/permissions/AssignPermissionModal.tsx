@@ -24,7 +24,7 @@ export function AssignPermissionModal({
     const t = q.trim().toLowerCase();
     if (!t) return mockRoles;
     return mockRoles.filter(
-      (r) => r.name.toLowerCase().includes(t) || r.description.toLowerCase().includes(t)
+      (r) => r.name.toLowerCase().includes(t) || (r.description?.toLowerCase().includes(t) ?? false)
     );
   }, [q]);
 

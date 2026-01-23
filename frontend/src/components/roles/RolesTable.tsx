@@ -88,7 +88,7 @@ export function RolesTable({
             </div>
 
             <div className="col-span-4 hidden sm:block text-[var(--color-text-secondary)]">
-              {r.description}
+              {r.description ?? ""}
             </div>
 
             <div className="col-span-2 text-right text-[var(--color-text-secondary)]">

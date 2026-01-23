@@ -31,14 +31,19 @@ export function AssignRoleModal({
   const { data: rolePermissions = {} } = useAllRolePermissions();
   const assignMutation = useAssignRole();
 
+  const userRoleIdSet = useMemo(
+    () => new Set(userRoleIds.map((ur) => ur.role_id)),
+    [userRoleIds]
+  );
+
   const roles = useMemo(() => {
     const t = q.trim().toLowerCase();
-    const available = allRoles.filter((r) => !userRoleIds.includes(r.id));
+    const available = allRoles.filter((r) => !userRoleIdSet.has(r.id));
     if (!t) return available;
     return available.filter(
-      (r) => r.name.toLowerCase().includes(t) || r.description.toLowerCase().includes(t)
+      (r) => r.name.toLowerCase().includes(t) || (r.description?.toLowerCase().includes(t) ?? false)
     );
-  }, [q, allRoles, userRoleIds]);
+  }, [q, allRoles, userRoleIdSet]);
 
   const isHighRisk = (roleId: string) => {
     const perms = rolePermissions[roleId] ?? [];
@@ -52,7 +57,7 @@ export function AssignRoleModal({
     }
 
     assignMutation.mutate(
-      { userId, roleId, reason },
+      { userId, roleId },
       {
         onSuccess: () => {
           toast.success("Role assigned successfully");

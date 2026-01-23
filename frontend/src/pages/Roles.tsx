@@ -7,6 +7,7 @@ import { QueryState } from "../components/ui/QueryState";
 import { RolesTable } from "../components/roles/RolesTable";
 import { CreateRoleModal } from "../components/roles/CreateRoleModal";
 import { useRoles } from "../api/hooks/useRoles";
+import { toRoleRow } from "../components/roles/roles.mock";
 
 export function Roles() {
   const rolesQuery = useRoles();
@@ -31,12 +32,14 @@ export function Roles() {
 
   const rows = useMemo(() => {
     const query = q.trim().toLowerCase();
-    if (!query) return roles;
-    return roles.filter(
-      (r) =>
-        r.name.toLowerCase().includes(query) ||
-        r.description.toLowerCase().includes(query)
-    );
+    const filtered = query
+      ? roles.filter(
+          (r) =>
+            r.name.toLowerCase().includes(query) ||
+            (r.description?.toLowerCase().includes(query) ?? false)
+        )
+      : roles;
+    return filtered.map(toRoleRow);
   }, [q, roles]);
 
   return (

@@ -7,6 +7,7 @@ import { CommandPalette } from "../components/command/CommandPalette";
 import { useThemeStore } from "../stores/themeStore";
 import { exportAuditCsv } from "../components/audit/exportCsv";
 import { useAudit } from "../api/hooks/useAudit";
+import { toAuditEvent } from "../components/audit/audit.mock";
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -15,7 +16,8 @@ export function AppLayout() {
   const navigate = useNavigate();
 
   const { resolvedTheme, setTheme } = useThemeStore();
-  const { data: auditRows } = useAudit();
+  const { data: auditApi } = useAudit();
+  const auditRows = useMemo(() => (auditApi ?? []).map(toAuditEvent), [auditApi]);
 
   useHotkeys("mod+k", (e) => {
     e.preventDefault();
@@ -86,7 +88,7 @@ export function AppLayout() {
         shortcut: "E",
         group: "Actions" as const,
         keywords: ["csv", "download"],
-        run: () => exportAuditCsv(auditRows ?? []),
+        run: () => exportAuditCsv(auditRows),
       },
     ];
   }, [navigate, resolvedTheme, setTheme, auditRows]);

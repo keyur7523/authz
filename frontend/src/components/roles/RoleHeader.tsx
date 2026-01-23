@@ -8,11 +8,11 @@ export function RoleHeader({
   description,
 }: {
   name: string;
-  description: string;
+  description: string | null;
 }) {
   const [editing, setEditing] = useState(false);
   const [roleName, setRoleName] = useState(name);
-  const [roleDesc, setRoleDesc] = useState(description);
+  const [roleDesc, setRoleDesc] = useState(description ?? "");
 
   return (
     <Card>

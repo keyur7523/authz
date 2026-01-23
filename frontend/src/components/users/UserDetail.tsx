@@ -12,8 +12,9 @@ export function UserDetail({
   user: User | null;
   onAssignClick: () => void;
 }) {
-  const { data: roleIds = [], isLoading: loadingRoles } = useUserRoles(user?.id ?? "");
+  const { data: userRoles = [], isLoading: loadingRoles } = useUserRoles(user?.id ?? "");
   const { data: allRoles = [] } = useRoles();
+  const roleIds = userRoles.map((ur) => ur.role_id);
 
   if (!user) {
     return (

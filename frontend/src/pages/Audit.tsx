@@ -10,13 +10,15 @@ import { AuditDetail } from "../components/audit/AuditDetail";
 import { exportAuditCsv } from "../components/audit/exportCsv";
 import { Field } from "../components/ui/Field";
 import { Select } from "../components/ui/Select";
+import { toAuditEvent } from "../components/audit/audit.mock";
 
 type DecisionFilter = "all" | "allow" | "deny" | "none";
 type TimePreset = "all" | "1h" | "24h" | "7d";
 
 export function Audit() {
   const auditQuery = useAudit();
-  const auditData = auditQuery.data ?? [];
+  const apiData = auditQuery.data ?? [];
+  const auditData = useMemo(() => apiData.map(toAuditEvent), [apiData]);
 
   const [q, setQ] = useState("");
   const [decision, setDecision] = useState<DecisionFilter>("all");

@@ -1,44 +1,45 @@
+// Re-export Role type from API and add display helpers
+import { type Role } from "../../api/endpoints";
+
+export type { Role };
+
+// Extended type for table display (computed from Role)
 export type RoleRow = {
-    id: string;
-    name: string;
-    description: string;
-    permissionsCount: number;
-    usersCount: number;
-    status: "active" | "expired";
+  id: string;
+  name: string;
+  description: string | null;
+  permissionsCount: number;
+  usersCount: number;
+  status: "active" | "expired";
+};
+
+// Helper to convert API Role to RoleRow for table display
+export function toRoleRow(role: Role): RoleRow {
+  return {
+    id: role.id,
+    name: role.name,
+    description: role.description,
+    permissionsCount: role.permissions?.length ?? 0,
+    usersCount: 0, // Would need separate API call to get user count
+    status: "active", // All roles are active by default
   };
-  
-  export const mockRoles: RoleRow[] = [
-    {
-      id: "role_admin",
-      name: "Admin",
-      description: "Full system access",
-      permissionsCount: 12,
-      usersCount: 2,
-      status: "active",
-    },
-    {
-      id: "role_dev",
-      name: "Developer",
-      description: "Dev environment access",
-      permissionsCount: 8,
-      usersCount: 15,
-      status: "active",
-    },
-    {
-      id: "role_viewer",
-      name: "Viewer",
-      description: "Read-only access",
-      permissionsCount: 3,
-      usersCount: 45,
-      status: "active",
-    },
-    {
-      id: "role_approver",
-      name: "Approver",
-      description: "Can approve requests",
-      permissionsCount: 5,
-      usersCount: 8,
-      status: "active",
-    },
-  ];
-  
+}
+
+export const mockRoles: RoleRow[] = [
+  {
+    id: "role_admin",
+    name: "Admin",
+    description: "Full system access",
+    permissionsCount: 12,
+    usersCount: 2,
+    status: "active",
+  },
+  {
+    id: "role_dev",
+    name: "Developer",
+    description: "Dev environment access",
+    permissionsCount: 8,
+    usersCount: 15,
+    status: "active",
+  },
+];

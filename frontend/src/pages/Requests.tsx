@@ -9,15 +9,37 @@ import { useRequests, useDecideRequest } from "../api/hooks/useRequests";
 import { RequestsTable } from "../components/requests/RequestsTable";
 import { RequestDetail } from "../components/requests/RequestDetail";
 import { DecisionModal } from "../components/requests/DecisionModal";
+import { toAccessRequest, type AccessRequest } from "../components/requests/requests.mock";
+import { useRoles } from "../api/hooks/useRoles";
+import { useUsers } from "../api/hooks/useUsers";
 
 type Tab = "pending" | "approved" | "denied" | "all";
 
 export function Requests() {
   const toast = useToast();
   const requestsQuery = useRequests();
+  const rolesQuery = useRoles();
+  const usersQuery = useUsers();
   const decideMutation = useDecideRequest();
 
-  const data = requestsQuery.data ?? [];
+  const apiData = requestsQuery.data ?? [];
+  const roles = rolesQuery.data ?? [];
+  const users = usersQuery.data ?? [];
+
+  // Transform API data to display format
+  const data: AccessRequest[] = useMemo(() => {
+    return apiData.map((req) => {
+      const role = roles.find((r) => r.id === req.requested_role_id);
+      const user = users.find((u) => u.user_id === req.requester_id);
+      return {
+        ...toAccessRequest(req, role?.name),
+        requester: {
+          name: user?.name ?? req.requester_id,
+          email: user?.email ?? "",
+        },
+      };
+    });
+  }, [apiData, roles, users]);
 
   const [tab, setTab] = useState<Tab>("pending");
   const [q, setQ] = useState("");

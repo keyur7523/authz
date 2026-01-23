@@ -39,6 +39,7 @@ export function RequestDetail({
         <Row k="Scope" v={request.scope} truncate />
         <Row k="Reason" v={request.reason} />
         <Row k="Status" v={request.status} />
+        <Row k="Risk" v={request.risk} />
       </div>
 
       {request.status === "pending" && (

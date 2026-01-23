@@ -22,7 +22,7 @@ export function RolePermissionsEditor({ roleId }: { roleId: string }) {
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
     if (!t) return all;
-    return all.filter((p) => (p.key + " " + p.description).toLowerCase().includes(t));
+    return all.filter((p) => (p.name + " " + (p.description ?? "")).toLowerCase().includes(t));
   }, [q, all]);
 
   const toggle = (pid: string) => {
@@ -87,8 +87,8 @@ export function RolePermissionsEditor({ roleId }: { roleId: string }) {
                     className="flex w-full items-start justify-between gap-3 border-b border-[var(--color-border-muted)] px-4 py-3 text-left hover:bg-[var(--color-surface-hover)] transition-colors"
                   >
                     <div>
-                      <div className="text-sm font-medium">{p.key}</div>
-                      <div className="text-xs text-[var(--color-text-muted)]">{p.description}</div>
+                      <div className="text-sm font-medium">{p.name}</div>
+                      <div className="text-xs text-[var(--color-text-muted)]">{p.description ?? ""}</div>
                     </div>
                     <input
                       type="checkbox"

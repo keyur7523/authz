@@ -30,7 +30,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: authTokens.isAuthenticated(),
 
   login: async (email: string, password: string) => {
-    const { user } = await authApi.login(email, password);
+    await authApi.login(email, password);
     const me = await authApi.me();
     set({ user: me, isAuthenticated: true });
 

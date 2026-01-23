@@ -523,37 +523,6 @@ Policies define who can do what on which resources:
 
 ---
 
-## Deployment
-
-### Railway
-
-```bash
-# Backend
-railway login
-railway init
-railway add --database postgresql
-railway up
-
-# Frontend
-cd frontend
-railway init
-railway up
-```
-
-### Docker (Optional)
-
-```dockerfile
-# backend/Dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY src/ ./src/
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
----
-
 ## Contributing
 
 1. Fork the repository
@@ -562,25 +531,12 @@ CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
----
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## Acknowledgments
-
-- Inspired by authorization systems at Google, Meta, and ByteDance
-- Built with [FastAPI](https://fastapi.tiangolo.com/), [React](https://react.dev/), and [Tailwind CSS](https://tailwindcss.com/)
-- Icons by [Lucide](https://lucide.dev/)
 
 ---
 
 <div align="center">
 
-**Built by [Keyur Pawaskar](https://github.com/yourusername)**
+**Built by [Keyur Pawaskar](https://github.com/keyur7523)**
 
 ⭐ Star this repo if you found it helpful!
 

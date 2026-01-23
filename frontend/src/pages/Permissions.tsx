@@ -9,12 +9,14 @@ import { useAllRolePermissions } from "../api/hooks/useRolePermissions";
 import { PermissionsTable } from "../components/permissions/PermissionsTable";
 import { PermissionDetail } from "../components/permissions/PermissionDetail";
 import { AssignPermissionModal } from "../components/permissions/AssignPermissionModal";
+import { toPermission } from "../components/permissions/permissions.mock";
 
 export function Permissions() {
   const permissionsQuery = usePermissions();
   const rolePermissionsQuery = useAllRolePermissions();
 
-  const permissions = permissionsQuery.data ?? [];
+  const apiPermissions = permissionsQuery.data ?? [];
+  const permissions = useMemo(() => apiPermissions.map(toPermission), [apiPermissions]);
   const rolePermissions = rolePermissionsQuery.data ?? {};
 
   const [q, setQ] = useState("");
