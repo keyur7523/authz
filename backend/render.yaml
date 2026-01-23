@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: authz-api
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt && alembic upgrade head
+    startCommand: uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: authz-db
+          property: connectionString
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "30"
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: "7"
+      - key: CORS_ORIGINS
+        value: '["https://authz-liard.vercel.app","http://localhost:3000","http://localhost:5173"]'
+      - key: OAUTH_REDIRECT_URL
+        value: "https://authz-liard.vercel.app/auth/callback"
+
+databases:
+  - name: authz-db
+    region: oregon
+    plan: free
+    databaseName: authz
+    user: authz
