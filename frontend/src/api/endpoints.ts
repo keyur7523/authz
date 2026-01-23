@@ -1,168 +1,370 @@
-import { apiCall } from "./client";
-import { mockRoles, type RoleRow } from "../components/roles/roles.mock";
-import { mockPermissions, type Permission } from "../components/permissions/permissions.mock";
-import { type AccessRequest } from "../components/requests/requests.mock";
-import { type AuditEvent } from "../components/audit/audit.mock";
-import { type User } from "../components/users/users.mock";
-import { mockDb } from "../store/mockDb";
+import { apiGet, apiPost, apiPut, apiDelete } from "./client";
 
-export const rolesApi = {
-  list: async (): Promise<RoleRow[]> =>
-    apiCall(() => mockRoles, { delayMs: 300 }),
-
-  get: async (roleId: string): Promise<RoleRow | null> =>
-    apiCall(() => mockRoles.find((r) => r.id === roleId) ?? null, { delayMs: 250 }),
+// Types
+export type Role = {
+  id: string;
+  org_id: string;
+  name: string;
+  description: string | null;
+  is_system: boolean;
+  created_at: string;
+  updated_at: string;
+  permissions: { id: string; name: string; description: string | null }[];
 };
 
+export type Permission = {
+  id: string;
+  org_id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+};
+
+export type AccessRequest = {
+  id: string;
+  org_id: string;
+  requester_id: string;
+  requested_role_id: string | null;
+  requested_permission: string | null;
+  resource_id: string | null;
+  justification: string;
+  status: "pending" | "approved" | "denied" | "cancelled" | "expired";
+  duration_hours: number | null;
+  expires_at: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  approval_actions: {
+    id: string;
+    request_id: string;
+    approver_id: string;
+    action: string;
+    comment: string | null;
+    created_at: string;
+  }[];
+};
+
+export type AuditLog = {
+  id: string;
+  org_id: string;
+  actor_id: string | null;
+  actor_email: string | null;
+  action: string;
+  resource_type: string;
+  resource_id: string | null;
+  details: Record<string, unknown> | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+};
+
+export type User = {
+  id: string;
+  email: string;
+  name: string;
+  avatar_url: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type OrgMember = {
+  user_id: string;
+  email: string;
+  name: string;
+  role: string;
+  joined_at: string;
+};
+
+export type UserRole = {
+  id: string;
+  user_id: string;
+  role_id: string;
+  org_id: string;
+  assigned_by: string | null;
+  assigned_at: string;
+};
+
+// Helper to get current org ID (you may want to store this in state)
+let currentOrgId: string | null = null;
+
+export function setCurrentOrgId(orgId: string) {
+  currentOrgId = orgId;
+  localStorage.setItem("current_org_id", orgId);
+}
+
+export function getCurrentOrgId(): string | null {
+  if (!currentOrgId) {
+    currentOrgId = localStorage.getItem("current_org_id");
+  }
+  return currentOrgId;
+}
+
+function orgPath(path: string): string {
+  const orgId = getCurrentOrgId();
+  if (!orgId) throw { message: "No organization selected", status: 400 };
+  return `/orgs/${orgId}${path}`;
+}
+
+// Roles API
+export const rolesApi = {
+  list: async (): Promise<Role[]> => apiGet<Role[]>(orgPath("/roles")),
+
+  get: async (roleId: string): Promise<Role> =>
+    apiGet<Role>(orgPath(`/roles/${roleId}`)),
+
+  create: async (data: { name: string; description?: string }): Promise<Role> =>
+    apiPost<Role>(orgPath("/roles"), data),
+
+  update: async (
+    roleId: string,
+    data: { name?: string; description?: string }
+  ): Promise<Role> => apiPut<Role>(orgPath(`/roles/${roleId}`), data),
+
+  delete: async (roleId: string): Promise<void> =>
+    apiDelete<void>(orgPath(`/roles/${roleId}`)),
+
+  addPermissions: async (
+    roleId: string,
+    permissionIds: string[]
+  ): Promise<void> =>
+    apiPost<void>(orgPath(`/roles/${roleId}/permissions`), {
+      permission_ids: permissionIds,
+    }),
+
+  removePermission: async (
+    roleId: string,
+    permissionId: string
+  ): Promise<void> =>
+    apiDelete<void>(orgPath(`/roles/${roleId}/permissions/${permissionId}`)),
+};
+
+// Permissions API
 export const permissionsApi = {
   list: async (): Promise<Permission[]> =>
-    apiCall(() => mockPermissions, { delayMs: 350 }),
+    apiGet<Permission[]>(orgPath("/permissions")),
+
+  create: async (data: {
+    name: string;
+    description?: string;
+  }): Promise<Permission> => apiPost<Permission>(orgPath("/permissions"), data),
+
+  delete: async (permissionId: string): Promise<void> =>
+    apiDelete<void>(orgPath(`/permissions/${permissionId}`)),
 };
 
+// Users API (org members)
 export const usersApi = {
-  list: async (): Promise<User[]> =>
-    apiCall(() => mockDb.get().users, { delayMs: 300 }),
+  list: async (): Promise<OrgMember[]> =>
+    apiGet<OrgMember[]>(orgPath("/members")),
 };
 
+// User Roles API
 export const userRolesApi = {
-  getForUser: async (userId: string): Promise<string[]> =>
-    apiCall(() => mockDb.get().userRoles[userId] ?? [], { delayMs: 200 }),
+  getForUser: async (userId: string): Promise<UserRole[]> =>
+    apiGet<UserRole[]>(orgPath(`/users/${userId}/roles`)),
 
-  assignRole: async (userId: string, roleId: string, reason: string): Promise<{ userId: string; roleId: string }> =>
-    apiCall(() => {
-      // Check if role is high-risk (has write permissions)
-      const rolePerms = mockDb.get().rolePermissions[roleId] ?? [];
-      const isHighRisk = rolePerms.some((p) => p.includes("write"));
+  getPermissions: async (
+    userId: string
+  ): Promise<{ user_id: string; org_id: string; permissions: string[] }> =>
+    apiGet(orgPath(`/users/${userId}/permissions`)),
 
-      if (isHighRisk) {
-        // Create access request instead of direct assignment
-        const user = mockDb.get().users.find((u) => u.id === userId);
-        const role = mockRoles.find((r) => r.id === roleId);
+  assignRole: async (
+    userId: string,
+    roleId: string
+  ): Promise<UserRole> =>
+    apiPost<UserRole>(orgPath(`/users/${userId}/roles`), { role_id: roleId }),
 
-        const newRequest: AccessRequest = {
-          id: `req_${Math.floor(Math.random() * 1_000_000)}`,
-          requester: { name: user?.name ?? "Unknown", email: user?.email ?? "unknown@company.com" },
-          roleId,
-          roleName: role?.name ?? roleId,
-          scope: "org:heart-artery-vein",
-          reason,
-          createdAt: new Date().toISOString(),
-          status: "pending",
-          risk: "high",
-        };
-
-        mockDb.update((db) => ({
-          ...db,
-          requests: [newRequest, ...db.requests],
-        }));
-
-        throw { message: "High-risk role requires approval", requestId: newRequest.id };
-      }
-
-      // Direct assignment for low-risk roles
-      mockDb.update((db) => {
-        const current = new Set(db.userRoles[userId] ?? []);
-        current.add(roleId);
-        const userRoles = { ...db.userRoles, [userId]: Array.from(current) };
-
-        const auditEvent: AuditEvent = {
-          id: `evt_${Math.floor(Math.random() * 1_000_000)}`,
-          ts: new Date().toISOString(),
-          actor: { id: "u_admin", name: "Admin User", email: "admin@company.com" },
-          action: "assign_permission",
-          resource: { type: "role", id: roleId },
-          scope: "org:heart-artery-vein",
-          ip: "10.0.2.15",
-          metadata: { userId, reason },
-        };
-
-        return { ...db, userRoles, audit: [auditEvent, ...db.audit] };
-      });
-
-      return { userId, roleId };
-    }, { delayMs: 300 }),
+  revokeRole: async (userId: string, roleId: string): Promise<void> =>
+    apiDelete<void>(orgPath(`/users/${userId}/roles/${roleId}`)),
 };
 
+// Access Requests API
 export const requestsApi = {
   list: async (): Promise<AccessRequest[]> =>
-    apiCall(() => mockDb.get().requests, { delayMs: 300 }),
+    apiGet<AccessRequest[]>(orgPath("/requests")),
 
-  decide: async (id: string, mode: "approve" | "deny", note?: string): Promise<{ id: string; status: "approved" | "denied" }> =>
-    apiCall(() => {
-      const status: "approved" | "denied" = mode === "approve" ? "approved" : "denied";
+  listPending: async (): Promise<{ requests: AccessRequest[]; total: number }> =>
+    apiGet(orgPath("/requests/pending")),
 
-      mockDb.update((db) => {
-        const request = db.requests.find((r) => r.id === id);
-        const requests = db.requests.map((r) =>
-          r.id === id ? { ...r, status } : r
-        );
+  listAll: async (status?: string): Promise<AccessRequest[]> =>
+    apiGet<AccessRequest[]>(
+      orgPath(`/requests/all${status ? `?status=${status}` : ""}`)
+    ),
 
-        // If approving, also assign the role to the user
-        let userRoles = db.userRoles;
-        if (mode === "approve" && request) {
-          // Find user by email from requester
-          const user = db.users.find((u) => u.email === request.requester.email);
-          if (user) {
-            const current = new Set(userRoles[user.id] ?? []);
-            current.add(request.roleId);
-            userRoles = { ...userRoles, [user.id]: Array.from(current) };
-          }
-        }
+  get: async (requestId: string): Promise<AccessRequest> =>
+    apiGet<AccessRequest>(orgPath(`/requests/${requestId}`)),
 
-        const auditEvent: AuditEvent = {
-          id: `evt_${Math.floor(Math.random() * 1_000_000)}`,
-          ts: new Date().toISOString(),
-          actor: { id: "u_admin", name: "Admin User", email: "admin@company.com" },
-          action: mode === "approve" ? "approve_request" : "deny_request",
-          resource: { type: "request", id },
-          scope: "org:heart-artery-vein",
-          ip: "10.0.2.15",
-          metadata: note ? { note } : {},
-        };
+  submit: async (data: {
+    requested_role_id?: string;
+    requested_permission?: string;
+    resource_id?: string;
+    justification: string;
+    duration_hours?: number;
+  }): Promise<AccessRequest> => apiPost<AccessRequest>(orgPath("/requests"), data),
 
-        const audit = [auditEvent, ...db.audit];
+  approve: async (
+    requestId: string,
+    comment?: string
+  ): Promise<AccessRequest> =>
+    apiPost<AccessRequest>(orgPath(`/requests/${requestId}/approve`), {
+      comment,
+    }),
 
-        return { ...db, requests, userRoles, audit };
-      });
+  deny: async (requestId: string, comment?: string): Promise<AccessRequest> =>
+    apiPost<AccessRequest>(orgPath(`/requests/${requestId}/deny`), { comment }),
 
-      return { id, status };
-    }, { delayMs: 300 }),
+  cancel: async (requestId: string): Promise<AccessRequest> =>
+    apiPost<AccessRequest>(orgPath(`/requests/${requestId}/cancel`), {}),
 };
 
+// Audit API
 export const auditApi = {
-  list: async (): Promise<AuditEvent[]> =>
-    apiCall(() => mockDb.get().audit, { delayMs: 250 }),
+  list: async (params?: {
+    action?: string;
+    resource_type?: string;
+    actor_id?: string;
+    start_date?: string;
+    end_date?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ logs: AuditLog[]; total: number; limit: number; offset: number }> => {
+    const searchParams = new URLSearchParams();
+    if (params?.action) searchParams.set("action", params.action);
+    if (params?.resource_type) searchParams.set("resource_type", params.resource_type);
+    if (params?.actor_id) searchParams.set("actor_id", params.actor_id);
+    if (params?.start_date) searchParams.set("start_date", params.start_date);
+    if (params?.end_date) searchParams.set("end_date", params.end_date);
+    if (params?.limit) searchParams.set("limit", params.limit.toString());
+    if (params?.offset) searchParams.set("offset", params.offset.toString());
+
+    const query = searchParams.toString();
+    return apiGet(orgPath(`/audit${query ? `?${query}` : ""}`));
+  },
+
+  export: async (format: "json" | "csv" = "json"): Promise<string> => {
+    const orgId = getCurrentOrgId();
+    if (!orgId) throw { message: "No organization selected", status: 400 };
+
+    const response = await fetch(
+      `http://localhost:8000/api/orgs/${orgId}/audit/export?format=${format}`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      }
+    );
+    return response.text();
+  },
 };
 
+// Policies API
+export const policiesApi = {
+  list: async (activeOnly = false): Promise<Policy[]> =>
+    apiGet<Policy[]>(orgPath(`/policies${activeOnly ? "?active_only=true" : ""}`)),
+
+  get: async (policyId: string): Promise<Policy> =>
+    apiGet<Policy>(orgPath(`/policies/${policyId}`)),
+
+  create: async (data: PolicyCreateInput): Promise<Policy> =>
+    apiPost<Policy>(orgPath("/policies"), data),
+
+  update: async (policyId: string, data: Partial<PolicyCreateInput>): Promise<Policy> =>
+    apiPut<Policy>(orgPath(`/policies/${policyId}`), data),
+
+  delete: async (policyId: string): Promise<void> =>
+    apiDelete<void>(orgPath(`/policies/${policyId}`)),
+
+  test: async (data: {
+    principal_id: string;
+    action: string;
+    resource: string;
+    context?: Record<string, unknown>;
+  }): Promise<{ allowed: boolean; matched_policy: string | null; effect: string | null; reason: string }> =>
+    apiPost(orgPath("/policies/test"), data),
+};
+
+export type Policy = {
+  id: string;
+  org_id: string;
+  name: string;
+  description: string | null;
+  effect: "allow" | "deny";
+  principals: { roles: string[]; users: string[] };
+  actions: string[];
+  resources: string[];
+  conditions: Record<string, unknown> | null;
+  is_active: boolean;
+  priority: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PolicyCreateInput = {
+  name: string;
+  description?: string;
+  effect: "allow" | "deny";
+  principals?: { roles: string[]; users: string[] };
+  actions: string[];
+  resources: string[];
+  conditions?: Record<string, unknown>;
+  priority?: number;
+};
+
+// Role Permissions API (for managing permissions assigned to roles)
 export const rolePermissionsApi = {
-  getAll: async (): Promise<Record<string, string[]>> =>
-    apiCall(() => mockDb.get().rolePermissions, { delayMs: 200 }),
+  getAll: async (): Promise<Record<string, string[]>> => {
+    // Get all roles and build a map of roleId -> permissionIds
+    const roles = await rolesApi.list();
+    const result: Record<string, string[]> = {};
+    for (const role of roles) {
+      result[role.id] = role.permissions.map((p) => p.id);
+    }
+    return result;
+  },
 
-  getForRole: async (roleId: string) =>
-    apiCall(() => mockDb.get().rolePermissions[roleId] ?? [], { delayMs: 200 }),
+  getForRole: async (roleId: string): Promise<string[]> => {
+    const role = await rolesApi.get(roleId);
+    return role.permissions.map((p) => p.id);
+  },
 
-  setForRole: async (roleId: string, permissionIds: string[], note?: string) =>
-    apiCall(() => {
-      mockDb.update((db) => {
-        const rolePermissions = { ...db.rolePermissions, [roleId]: permissionIds };
+  setForRole: async (
+    roleId: string,
+    permissionIds: string[],
+    _note?: string
+  ): Promise<{ roleId: string; permissionIds: string[] }> => {
+    // Get current permissions
+    const role = await rolesApi.get(roleId);
+    const currentIds = new Set(role.permissions.map((p) => p.id));
+    const newIds = new Set(permissionIds);
 
-        const auditEvent: AuditEvent = {
-          id: `evt_${Math.floor(Math.random() * 1_000_000)}`,
-          ts: new Date().toISOString(),
-          actor: { id: "u_admin", name: "Admin User", email: "admin@company.com" },
-          action: "assign_permission",
-          resource: { type: "role", id: roleId },
-          scope: "org:heart-artery-vein",
-          ip: "10.0.2.15",
-          metadata: {
-            note: note ?? "",
-            permissionIds: permissionIds.join(","),
-          },
-        };
+    // Remove permissions that are no longer in the list
+    for (const id of currentIds) {
+      if (!newIds.has(id)) {
+        await rolesApi.removePermission(roleId, id);
+      }
+    }
 
-        return { ...db, rolePermissions, audit: [auditEvent, ...db.audit] };
-      });
+    // Add new permissions
+    const toAdd = permissionIds.filter((id) => !currentIds.has(id));
+    if (toAdd.length > 0) {
+      await rolesApi.addPermissions(roleId, toAdd);
+    }
 
-      return { roleId, permissionIds };
-    }, { delayMs: 300 }),
+    return { roleId, permissionIds };
+  },
+};
+
+// Organizations API
+export const orgsApi = {
+  list: async (): Promise<{ id: string; name: string; slug: string; role: string }[]> =>
+    apiGet("/orgs"),
+
+  get: async (orgId: string): Promise<{ id: string; name: string; slug: string; created_at: string; updated_at: string }> =>
+    apiGet(`/orgs/${orgId}`),
+
+  create: async (data: { name: string; slug: string }): Promise<{ id: string; name: string; slug: string; role: string }> =>
+    apiPost("/orgs", data),
+
+  getMembers: async (orgId: string): Promise<OrgMember[]> =>
+    apiGet(`/orgs/${orgId}/members`),
 };

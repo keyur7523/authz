@@ -18,19 +18,39 @@ export function useUserRoles(userId: string) {
   });
 }
 
+export function useUserPermissions(userId: string) {
+  return useQuery({
+    queryKey: ["user-permissions", userId],
+    queryFn: () => userRolesApi.getPermissions(userId),
+    enabled: !!userId,
+    staleTime: 10_000,
+  });
+}
+
 export function useAssignRole() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: (vars: { userId: string; roleId: string; reason: string }) =>
-      userRolesApi.assignRole(vars.userId, vars.roleId, vars.reason),
+    mutationFn: (vars: { userId: string; roleId: string }) =>
+      userRolesApi.assignRole(vars.userId, vars.roleId),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["user-roles", vars.userId] });
+      qc.invalidateQueries({ queryKey: ["user-permissions", vars.userId] });
       qc.invalidateQueries({ queryKey: ["audit"] });
     },
-    onError: () => {
-      // High-risk assignment creates a request
-      qc.invalidateQueries({ queryKey: ["requests"] });
+  });
+}
+
+export function useRevokeRole() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (vars: { userId: string; roleId: string }) =>
+      userRolesApi.revokeRole(vars.userId, vars.roleId),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["user-roles", vars.userId] });
+      qc.invalidateQueries({ queryKey: ["user-permissions", vars.userId] });
+      qc.invalidateQueries({ queryKey: ["audit"] });
     },
   });
 }
