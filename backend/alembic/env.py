@@ -19,9 +19,11 @@ def get_sync_database_url() -> str:
     url = settings.DATABASE_URL
     # Convert to psycopg2 format for sync migrations
     if url.startswith("postgresql+asyncpg://"):
-        return url.replace("postgresql+asyncpg://", "postgresql://", 1)
+        url = url.replace("postgresql+asyncpg://", "postgresql://", 1)
     if url.startswith("postgres://"):
-        return url.replace("postgres://", "postgresql://", 1)
+        url = url.replace("postgres://", "postgresql://", 1)
+    # psycopg2 uses 'sslmode' instead of 'ssl'
+    url = url.replace("ssl=require", "sslmode=require")
     return url
 
 
