@@ -1,3 +1,4 @@
+import re
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,14 +34,15 @@ class Settings(BaseSettings):
     def ASYNC_DATABASE_URL(self) -> str:
         """Convert database URL to async format for SQLAlchemy."""
         url = self.DATABASE_URL
-        # Already async format - return as is
-        if url.startswith("postgresql+asyncpg://"):
-            return url
-        # Render provides postgres:// but SQLAlchemy async needs postgresql+asyncpg://
+        # Convert to asyncpg driver format
         if url.startswith("postgres://"):
-            return url.replace("postgres://", "postgresql+asyncpg://", 1)
-        if url.startswith("postgresql://"):
-            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        # asyncpg uses 'ssl' instead of 'sslmode'
+        url = url.replace("sslmode=", "ssl=")
+        # Remove unsupported asyncpg parameters
+        url = re.sub(r"[&?]channel_binding=[^&]*", "", url)
         return url
 
 
