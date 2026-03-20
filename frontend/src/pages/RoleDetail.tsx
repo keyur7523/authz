@@ -20,11 +20,11 @@ export function RoleDetail() {
     >
       {role && (
         <div className="space-y-4">
-          <RoleHeader name={role.name} description={role.description} />
+          <RoleHeader roleId={roleId!} name={role.name} description={role.description} />
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <RolePermissionsEditor roleId={roleId!} />
-            <RoleUsers />
+            <RoleUsers roleId={roleId!} />
           </div>
         </div>
       )}

@@ -1,6 +1,8 @@
 import { Card } from "../../components/ui/Card";
 import { Badge } from "../../components/ui/Badge";
 import { type Permission } from "./permissions.mock";
+import { useRoles } from "../../api/hooks/useRoles";
+import { useMemo } from "react";
 
 export function PermissionDetail({
   permission,
@@ -11,6 +13,15 @@ export function PermissionDetail({
   assignedRoleIds: string[];
   onAssignClick: () => void;
 }) {
+  const rolesQuery = useRoles();
+  const rolesMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const r of rolesQuery.data ?? []) {
+      map[r.id] = r.name;
+    }
+    return map;
+  }, [rolesQuery.data]);
+
   if (!permission) {
     return (
       <Card>
@@ -43,7 +54,9 @@ export function PermissionDetail({
         <div className="text-xs text-[var(--color-text-muted)] mb-2">Assigned roles</div>
         <div className="flex flex-wrap gap-2">
           {assignedRoleIds.length ? (
-            assignedRoleIds.map((id) => <Badge key={id}>{id}</Badge>)
+            assignedRoleIds.map((id) => (
+              <Badge key={id}>{rolesMap[id] ?? id}</Badge>
+            ))
           ) : (
             <span className="text-sm text-[var(--color-text-muted)]">None</span>
           )}

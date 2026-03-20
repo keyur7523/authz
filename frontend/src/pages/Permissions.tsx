@@ -10,10 +10,13 @@ import { PermissionsTable } from "../components/permissions/PermissionsTable";
 import { PermissionDetail } from "../components/permissions/PermissionDetail";
 import { AssignPermissionModal } from "../components/permissions/AssignPermissionModal";
 import { toPermission } from "../components/permissions/permissions.mock";
+import { rolesApi } from "../api/endpoints";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export function Permissions() {
   const permissionsQuery = usePermissions();
   const rolePermissionsQuery = useAllRolePermissions();
+  const qc = useQueryClient();
 
   const apiPermissions = permissionsQuery.data ?? [];
   const permissions = useMemo(() => apiPermissions.map(toPermission), [apiPermissions]);
@@ -105,11 +108,21 @@ export function Permissions() {
   const targetPermissionIds =
     checked.size > 0 ? Array.from(checked) : selectedId ? [selectedId] : [];
 
-  const applyAssign = (_roleId: string) => {
-    // Note: This is view-only for now. Actual assignment is done via RolePermissionsEditor.
-    // Close modal and clear selection.
-    setAssignOpen(false);
-    setChecked(new Set());
+  const assignMutation = useMutation({
+    mutationFn: async (roleId: string) => {
+      await rolesApi.addPermissions(roleId, targetPermissionIds);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["role-permissions-all"] });
+      qc.invalidateQueries({ queryKey: ["roles"] });
+      qc.invalidateQueries({ queryKey: ["audit"] });
+      setAssignOpen(false);
+      setChecked(new Set());
+    },
+  });
+
+  const applyAssign = (roleId: string) => {
+    assignMutation.mutate(roleId);
   };
 
   const isLoading = permissionsQuery.isLoading || rolePermissionsQuery.isLoading;

@@ -3,7 +3,7 @@ import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { useMemo, useState } from "react";
-import { mockRoles } from "../../components/roles/roles.mock";
+import { useRoles } from "../../api/hooks/useRoles";
 
 export function AssignPermissionModal({
   open,
@@ -14,22 +14,28 @@ export function AssignPermissionModal({
 }: {
   open: boolean;
   onClose: () => void;
-  targetPermissionIds: string[]; // one or many
-  assignedByPermission: Record<string, string[]>; // permId -> roleIds
+  targetPermissionIds: string[];
+  assignedByPermission: Record<string, string[]>;
   onApply: (roleId: string) => void;
 }) {
   const [q, setQ] = useState("");
+  const rolesQuery = useRoles();
+  const apiRoles = rolesQuery.data ?? [];
 
   const roles = useMemo(() => {
     const t = q.trim().toLowerCase();
-    if (!t) return mockRoles;
-    return mockRoles.filter(
-      (r) => r.name.toLowerCase().includes(t) || (r.description?.toLowerCase().includes(t) ?? false)
+    if (!t) return apiRoles;
+    return apiRoles.filter(
+      (r) =>
+        r.name.toLowerCase().includes(t) ||
+        (r.description?.toLowerCase().includes(t) ?? false)
     );
-  }, [q]);
+  }, [q, apiRoles]);
 
   const title =
-    targetPermissionIds.length === 1 ? "Assign permission" : `Assign ${targetPermissionIds.length} permissions`;
+    targetPermissionIds.length === 1
+      ? "Assign permission"
+      : `Assign ${targetPermissionIds.length} permissions`;
 
   return (
     <AnimatePresence>
@@ -56,20 +62,36 @@ export function AssignPermissionModal({
               </div>
 
               <div className="mt-4">
-                <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search roles…" />
+                <Input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search roles…"
+                />
               </div>
 
               <div className="mt-4 space-y-2 max-h-72 overflow-auto pr-1">
-                {roles.map((r) => (
-                  <button
-                    key={r.id}
-                    onClick={() => onApply(r.id)}
-                    className="w-full rounded-md border border-[var(--color-border)] p-3 text-left hover:bg-[var(--color-surface-hover)] transition-colors"
-                  >
-                    <div className="text-sm font-medium">{r.name}</div>
-                    <div className="text-xs text-[var(--color-text-muted)]">{r.description}</div>
-                  </button>
-                ))}
+                {rolesQuery.isLoading ? (
+                  <div className="text-sm text-[var(--color-text-muted)] p-3">
+                    Loading roles…
+                  </div>
+                ) : roles.length === 0 ? (
+                  <div className="text-sm text-[var(--color-text-muted)] p-3">
+                    No roles found.
+                  </div>
+                ) : (
+                  roles.map((r) => (
+                    <button
+                      key={r.id}
+                      onClick={() => onApply(r.id)}
+                      className="w-full rounded-md border border-[var(--color-border)] p-3 text-left hover:bg-[var(--color-surface-hover)] transition-colors"
+                    >
+                      <div className="text-sm font-medium">{r.name}</div>
+                      <div className="text-xs text-[var(--color-text-muted)]">
+                        {r.description ?? "No description"}
+                      </div>
+                    </button>
+                  ))
+                )}
               </div>
 
               <div className="mt-4 flex justify-end gap-2">
