@@ -14,20 +14,10 @@ from src.services.org_service import OrgService
 from src.services.audit_service import AuditService
 from src.db.database import get_db
 from src.db.models.user import User
-from src.db.models.organization import OrgMemberRole
-from src.api.dependencies import get_current_user
+from src.api.dependencies import get_current_user, check_org_admin
 from src.core.exceptions import NotFound, Forbidden
 
 router = APIRouter(tags=["roles"])
-
-
-async def _check_org_admin(service: OrgService, org_id: UUID, user_id: UUID):
-    membership = await service.get_membership(org_id, user_id)
-    if not membership:
-        raise Forbidden("Not a member of this organization")
-    if membership.role not in [OrgMemberRole.OWNER, OrgMemberRole.ADMIN]:
-        raise Forbidden("Admin access required")
-    return membership
 
 
 @router.post("/orgs/{org_id}/roles", response_model=RoleOut)
@@ -38,7 +28,7 @@ async def create_role(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _check_org_admin(OrgService(db), org_id, current_user.id)
+    await check_org_admin(OrgService(db), org_id, current_user.id)
     role = await RBACService(db).create_role(org_id, payload)
 
     # Audit log
@@ -140,7 +130,7 @@ async def update_role(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _check_org_admin(OrgService(db), org_id, current_user.id)
+    await check_org_admin(OrgService(db), org_id, current_user.id)
 
     service = RBACService(db)
     role = await service.get_role(role_id)
@@ -180,7 +170,7 @@ async def delete_role(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _check_org_admin(OrgService(db), org_id, current_user.id)
+    await check_org_admin(OrgService(db), org_id, current_user.id)
 
     service = RBACService(db)
     role = await service.get_role(role_id)
@@ -210,7 +200,7 @@ async def add_permissions_to_role(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _check_org_admin(OrgService(db), org_id, current_user.id)
+    await check_org_admin(OrgService(db), org_id, current_user.id)
 
     service = RBACService(db)
     role = await service.get_role(role_id)
@@ -229,7 +219,7 @@ async def remove_permission_from_role(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _check_org_admin(OrgService(db), org_id, current_user.id)
+    await check_org_admin(OrgService(db), org_id, current_user.id)
 
     service = RBACService(db)
     role = await service.get_role(role_id)

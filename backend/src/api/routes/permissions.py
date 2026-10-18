@@ -1,37 +1,40 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.schemas.permission import PermissionCreateIn, PermissionUpdateIn, PermissionOut
 from src.services.rbac_service import RBACService
 from src.services.org_service import OrgService
+from src.services.audit_service import AuditService
 from src.db.database import get_db
 from src.db.models.user import User
-from src.db.models.organization import OrgMemberRole
-from src.api.dependencies import get_current_user
+from src.api.dependencies import get_current_user, check_org_admin
 from src.core.exceptions import NotFound, Forbidden
 
 router = APIRouter(tags=["permissions"])
-
-
-async def _check_org_admin(service: OrgService, org_id: UUID, user_id: UUID):
-    membership = await service.get_membership(org_id, user_id)
-    if not membership:
-        raise Forbidden("Not a member of this organization")
-    if membership.role not in [OrgMemberRole.OWNER, OrgMemberRole.ADMIN]:
-        raise Forbidden("Admin access required")
-    return membership
 
 
 @router.post("/orgs/{org_id}/permissions", response_model=PermissionOut)
 async def create_permission(
     org_id: UUID,
     payload: PermissionCreateIn,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _check_org_admin(OrgService(db), org_id, current_user.id)
+    await check_org_admin(OrgService(db), org_id, current_user.id)
     permission = await RBACService(db).create_permission(org_id, payload)
+    await AuditService(db).log(
+        org_id=org_id,
+        actor_id=current_user.id,
+        actor_email=current_user.email,
+        action="permission.created",
+        resource_type="permission",
+        resource_id=str(permission.id),
+        details={"name": permission.name},
+        request=request,
+    )
+
     return PermissionOut(
         id=str(permission.id),
         org_id=str(permission.org_id),
@@ -69,10 +72,11 @@ async def update_permission(
     org_id: UUID,
     permission_id: UUID,
     payload: PermissionUpdateIn,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _check_org_admin(OrgService(db), org_id, current_user.id)
+    await check_org_admin(OrgService(db), org_id, current_user.id)
 
     service = RBACService(db)
     permission = await service.get_permission(permission_id)
@@ -80,6 +84,17 @@ async def update_permission(
         raise NotFound("Permission not found")
 
     permission = await service.update_permission(permission_id, payload)
+    await AuditService(db).log(
+        org_id=org_id,
+        actor_id=current_user.id,
+        actor_email=current_user.email,
+        action="permission.updated",
+        resource_type="permission",
+        resource_id=str(permission_id),
+        details=payload.model_dump(mode="json", exclude_none=True),
+        request=request,
+    )
+
     return PermissionOut(
         id=str(permission.id),
         org_id=str(permission.org_id),
@@ -93,10 +108,11 @@ async def update_permission(
 async def delete_permission(
     org_id: UUID,
     permission_id: UUID,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _check_org_admin(OrgService(db), org_id, current_user.id)
+    await check_org_admin(OrgService(db), org_id, current_user.id)
 
     service = RBACService(db)
     permission = await service.get_permission(permission_id)
@@ -104,3 +120,13 @@ async def delete_permission(
         raise NotFound("Permission not found")
 
     await service.delete_permission(permission_id)
+    await AuditService(db).log(
+        org_id=org_id,
+        actor_id=current_user.id,
+        actor_email=current_user.email,
+        action="permission.deleted",
+        resource_type="permission",
+        resource_id=str(permission_id),
+        details={"name": permission.name},
+        request=request,
+    )

@@ -41,28 +41,13 @@ async def get_current_user(
     return user
 
 
-async def get_current_user_optional(
-    authorization: str | None = Header(default=None),
-    db: AsyncSession = Depends(get_db),
-) -> User | None:
-    """Get the current user if authenticated, otherwise None."""
-    if not authorization or not authorization.lower().startswith("bearer "):
-        return None
-
-    token = authorization.split(" ", 1)[1].strip()
-    try:
-        payload = decode_token(token)
-    except Exception:
-        return None
-
-    if payload.get("type") != "access":
-        return None
-
-    user_id = payload.get("sub")
-    if not user_id:
-        return None
-
-    return await AuthService(db).get_user(user_id)
+async def check_org_admin(service: OrgService, org_id: UUID, user_id: UUID):
+    membership = await service.get_membership(org_id, user_id)
+    if not membership:
+        raise Forbidden("Not a member of this organization")
+    if membership.role not in [OrgMemberRole.OWNER, OrgMemberRole.ADMIN]:
+        raise Forbidden("Admin access required")
+    return membership
 
 
 class OrgMembershipChecker:

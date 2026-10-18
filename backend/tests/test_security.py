@@ -80,7 +80,7 @@ async def test_github_oauth_rejects_unverified_email(client: AsyncClient, test_d
     await register(client, "victim@example.com")
     monkeypatch.setattr(settings, "GITHUB_CLIENT_ID", "id")
     monkeypatch.setattr(settings, "GITHUB_CLIENT_SECRET", "secret")
-    oauth.oauth_states["s1"] = {"provider": "github"}
+    state = oauth._create_state("github")
 
     class FakeResponse:
         def __init__(self, data):
@@ -106,11 +106,24 @@ async def test_github_oauth_rejects_unverified_email(client: AsyncClient, test_d
 
     monkeypatch.setattr(oauth.httpx, "AsyncClient", FakeClient)
 
-    res = await client.get("/api/auth/oauth/github/callback?code=c&state=s1")
+    res = await client.get(f"/api/auth/oauth/github/callback?code=c&state={state}")
     assert res.status_code == 401
-
+    assert "verified email" in res.text
     victim = (await test_db.execute(select(User).where(User.email == "victim@example.com"))).scalar_one()
     assert victim.oauth_provider is None
+
+
+async def test_oauth_state_rejects_forged_or_wrong_provider(client: AsyncClient, test_db, monkeypatch):
+    from src.api.routes import oauth
+    from src.config import settings
+
+    monkeypatch.setattr(settings, "GITHUB_CLIENT_ID", "id")
+    monkeypatch.setattr(settings, "GITHUB_CLIENT_SECRET", "secret")
+    for state in ["garbage", oauth._create_state("google")]:
+        res = await client.get(f"/api/auth/oauth/github/callback?code=c&state={state}")
+        assert res.status_code == 401
+        assert "Invalid OAuth state" in res.text
+
 
 
 async def test_cannot_cancel_invite_of_another_org(client: AsyncClient):
@@ -194,3 +207,78 @@ async def test_cannot_request_role_from_another_org(client: AsyncClient):
         headers=owner,
     )
     assert res.status_code == 404
+
+
+async def test_password_login_on_oauth_only_account_is_401(client: AsyncClient, test_db):
+    test_db.add(User(email="oauth@a.com", name="o", password_hash="", oauth_provider="github", oauth_id="1"))
+    await test_db.commit()
+    res = await client.post("/api/auth/login", json={"email": "oauth@a.com", "password": "whatever1"})
+    assert res.status_code == 401
+
+    res = await client.post("/api/auth/register", json={"email": "s@a.com", "name": "s", "password": "short"})
+    assert res.status_code == 422
+
+
+async def test_admin_actions_are_audited(client: AsyncClient, test_db):
+    owner, _ = await register(client, "owner@a.com")
+    org = await create_org(client, owner, "org-a")
+    member, member_id = await join(client, test_db, org, "member@a.com", "member")
+    base = f"/api/orgs/{org}"
+
+    role = (await client.post(f"{base}/roles", json={"name": "viewer"}, headers=owner)).json()["id"]
+    perm = (await client.post(f"{base}/permissions", json={"name": "docs:read"}, headers=owner)).json()["id"]
+    await client.put(f"{base}/permissions/{perm}", json={"description": "d"}, headers=owner)
+    await client.delete(f"{base}/permissions/{perm}", headers=owner)
+    policy = (await client.post(f"{base}/policies", json={"name": "p", "effect": "allow"}, headers=owner)).json()["id"]
+    await client.put(f"{base}/policies/{policy}", json={"priority": 1}, headers=owner)
+    await client.delete(f"{base}/policies/{policy}", headers=owner)
+    await client.post(f"{base}/users/{member_id}/roles", json={"role_id": role}, headers=owner)
+    await client.delete(f"{base}/users/{member_id}/roles/{role}", headers=owner)
+    for verb in ("approve", "deny"):
+        req = await client.post(
+            f"{base}/requests", json={"requested_role_id": role, "justification": "need it for work"}, headers=member
+        )
+        assert (await client.post(f"{base}/requests/{req.json()['id']}/{verb}", json={}, headers=owner)).status_code == 200
+    assert (await client.delete(f"{base}/members/{member_id}", headers=owner)).status_code == 204
+
+    logs = (await client.get(f"{base}/audit?limit=100", headers=owner)).json()["logs"]
+    assert {
+        "permission.created", "permission.updated", "permission.deleted",
+        "policy.created", "policy.updated", "policy.deleted",
+        "role.assigned", "role.revoked", "request.approved", "request.denied", "member.removed",
+    } <= {log["action"] for log in logs}
+
+
+async def test_bad_input_is_4xx_not_500(client: AsyncClient):
+    owner, owner_id = await register(client, "owner@a.com")
+    org = await create_org(client, owner, "org-a")
+
+    assert (await client.get(f"/api/orgs/{org}/requests/all?status=foo", headers=owner)).status_code == 422
+
+    bulk = [{"principal_id": owner_id, "action": "a", "resource": "r"}] * 101
+    assert (await client.post(f"/api/authorize/bulk?org_id={org}", json=bulk, headers=owner)).status_code == 422
+
+    policy = {"name": "p", "effect": "allow", "actions": ["*"], "resources": ["*"],
+              "principals": {"users": [owner_id]}, "conditions": {"level": {"gt": 5}, "tier": {"in": 3}}}
+    assert (await client.post(f"/api/orgs/{org}/policies", json=policy, headers=owner)).status_code == 200
+    res = await client.post(
+        f"/api/orgs/{org}/policies/test",
+        json={"principal_id": owner_id, "action": "a", "resource": "r", "context": {"level": "high", "tier": "x"}},
+        headers=owner,
+    )
+    assert res.status_code == 200
+    assert res.json()["allowed"] is False
+
+
+async def test_oauth_login_url_is_encoded_and_state_verifies(client: AsyncClient, monkeypatch):
+    from urllib.parse import parse_qs, urlparse
+    from src.api.routes import oauth
+    from src.config import settings
+
+    monkeypatch.setattr(settings, "GOOGLE_CLIENT_ID", "id")
+    data = (await client.get("/api/auth/oauth/google")).json()
+    query = parse_qs(urlparse(data["url"]).query)
+    assert query["redirect_uri"] == [f"{settings.OAUTH_REDIRECT_URL}?provider=google"]
+    assert query["scope"] == ["openid email profile"]
+    assert query["state"] == [data["state"]]
+    oauth._verify_state(data["state"], "google")

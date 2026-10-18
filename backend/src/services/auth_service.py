@@ -48,7 +48,8 @@ class AuthService:
         )
         user = res.scalar_one_or_none()
 
-        if not user or not verify_password(payload.password, user.password_hash):
+        # OAuth-only accounts have an empty hash, which bcrypt rejects with ValueError
+        if not user or not user.password_hash or not verify_password(payload.password, user.password_hash):
             raise Unauthorized("Invalid email or password")
 
         if not user.is_active:
@@ -109,8 +110,4 @@ class AuthService:
                 return None
 
         res = await self.db.execute(select(User).where(User.id == user_id))
-        return res.scalar_one_or_none()
-
-    async def get_user_by_email(self, email: str) -> User | None:
-        res = await self.db.execute(select(User).where(User.email == email))
         return res.scalar_one_or_none()

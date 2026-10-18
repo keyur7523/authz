@@ -1,27 +1,18 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.schemas.role import RoleAssignIn, UserRoleOut
 from src.schemas.permission import UserPermissionsOut
 from src.services.rbac_service import RBACService
 from src.services.org_service import OrgService
+from src.services.audit_service import AuditService
 from src.db.database import get_db
 from src.db.models.user import User
-from src.db.models.organization import OrgMemberRole
-from src.api.dependencies import get_current_user
+from src.api.dependencies import get_current_user, check_org_admin
 from src.core.exceptions import Forbidden
 
 router = APIRouter(tags=["users"])
-
-
-async def _check_org_admin(service: OrgService, org_id: UUID, user_id: UUID):
-    membership = await service.get_membership(org_id, user_id)
-    if not membership:
-        raise Forbidden("Not a member of this organization")
-    if membership.role not in [OrgMemberRole.OWNER, OrgMemberRole.ADMIN]:
-        raise Forbidden("Admin access required")
-    return membership
 
 
 @router.post("/orgs/{org_id}/users/{user_id}/roles", response_model=UserRoleOut)
@@ -29,10 +20,11 @@ async def assign_role(
     org_id: UUID,
     user_id: UUID,
     payload: RoleAssignIn,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _check_org_admin(OrgService(db), org_id, current_user.id)
+    await check_org_admin(OrgService(db), org_id, current_user.id)
 
     user_role = await RBACService(db).assign_role_to_user(
         org_id=org_id,
@@ -40,6 +32,17 @@ async def assign_role(
         role_id=UUID(payload.role_id),
         assigned_by=current_user.id,
     )
+    await AuditService(db).log(
+        org_id=org_id,
+        actor_id=current_user.id,
+        actor_email=current_user.email,
+        action="role.assigned",
+        resource_type="user",
+        resource_id=str(user_id),
+        details={"role_id": payload.role_id},
+        request=request,
+    )
+
     return UserRoleOut(
         id=str(user_role.id),
         user_id=str(user_role.user_id),
@@ -55,11 +58,22 @@ async def revoke_role(
     org_id: UUID,
     user_id: UUID,
     role_id: UUID,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _check_org_admin(OrgService(db), org_id, current_user.id)
+    await check_org_admin(OrgService(db), org_id, current_user.id)
     await RBACService(db).revoke_role_from_user(org_id, user_id, role_id)
+    await AuditService(db).log(
+        org_id=org_id,
+        actor_id=current_user.id,
+        actor_email=current_user.email,
+        action="role.revoked",
+        resource_type="user",
+        resource_id=str(user_id),
+        details={"role_id": str(role_id)},
+        request=request,
+    )
 
 
 @router.get("/orgs/{org_id}/users/{user_id}/permissions", response_model=UserPermissionsOut)

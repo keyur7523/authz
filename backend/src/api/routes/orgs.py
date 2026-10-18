@@ -184,6 +184,7 @@ async def list_members(
 async def remove_member(
     org_id: UUID,
     user_id: UUID,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -204,6 +205,16 @@ async def remove_member(
         raise Forbidden("Owner access required to remove owners or admins")
 
     await service.remove_member(org_id, user_id)
+    await AuditService(db).log(
+        org_id=org_id,
+        actor_id=current_user.id,
+        actor_email=current_user.email,
+        action="member.removed",
+        resource_type="user",
+        resource_id=str(user_id),
+        details=None,
+        request=request,
+    )
 
 
 # Invite endpoints

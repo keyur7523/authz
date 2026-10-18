@@ -96,6 +96,7 @@ export function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
+              minLength={isRegister ? 8 : undefined}
               required
             />
           </div>

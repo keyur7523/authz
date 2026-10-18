@@ -7,4 +7,3 @@ from . import policies  # noqa
 from . import authorize  # noqa
 from . import requests  # noqa
 from . import audit  # noqa
-from . import websocket  # noqa

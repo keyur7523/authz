@@ -9,20 +9,9 @@ from src.services.audit_service import AuditService
 from src.services.org_service import OrgService
 from src.db.database import get_db
 from src.db.models.user import User
-from src.db.models.organization import OrgMemberRole
-from src.api.dependencies import get_current_user
-from src.core.exceptions import Forbidden
+from src.api.dependencies import get_current_user, check_org_admin
 
 router = APIRouter(tags=["audit"])
-
-
-async def _check_org_admin(service: OrgService, org_id: UUID, user_id: UUID):
-    membership = await service.get_membership(org_id, user_id)
-    if not membership:
-        raise Forbidden("Not a member of this organization")
-    if membership.role not in [OrgMemberRole.OWNER, OrgMemberRole.ADMIN]:
-        raise Forbidden("Admin access required")
-    return membership
 
 
 @router.get("/orgs/{org_id}/audit", response_model=AuditListOut)
@@ -39,7 +28,7 @@ async def query_audit_logs(
     current_user: User = Depends(get_current_user),
 ):
     """Query audit logs with filters."""
-    await _check_org_admin(OrgService(db), org_id, current_user.id)
+    await check_org_admin(OrgService(db), org_id, current_user.id)
 
     actor_uuid = UUID(actor_id) if actor_id else None
     logs, total = await AuditService(db).query(
@@ -89,7 +78,7 @@ async def export_audit_logs(
     current_user: User = Depends(get_current_user),
 ):
     """Export audit logs in JSON or CSV format."""
-    await _check_org_admin(OrgService(db), org_id, current_user.id)
+    await check_org_admin(OrgService(db), org_id, current_user.id)
 
     actor_uuid = UUID(actor_id) if actor_id else None
     content, media_type = await AuditService(db).export(

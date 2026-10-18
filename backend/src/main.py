@@ -17,7 +17,6 @@ from src.api.routes import (
     authorize,
     requests,
     audit,
-    websocket,
     dashboard,
     oauth,
 )
@@ -78,5 +77,3 @@ app.include_router(audit.router, prefix=settings.API_PREFIX)
 # Dashboard routes
 app.include_router(dashboard.router, prefix=settings.API_PREFIX)
 
-# WebSocket routes (no prefix)
-app.include_router(websocket.router)
