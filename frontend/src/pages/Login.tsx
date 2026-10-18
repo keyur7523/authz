@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
+import { authApi } from "../api/client";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 
@@ -30,6 +31,19 @@ export function Login() {
       const error = err as { message?: string };
       setError(error.message || "Authentication failed");
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      const { url } = await authApi.oauthUrl("google");
+      window.location.href = url;
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      setError(error.message || "Google sign-in is unavailable");
       setLoading(false);
     }
   };
@@ -96,6 +110,22 @@ export function Login() {
             {loading ? "Loading..." : isRegister ? "Create Account" : "Sign In"}
           </Button>
         </form>
+
+        <div className="flex items-center gap-3 text-xs text-zinc-500">
+          <div className="h-px flex-1 bg-zinc-800" />
+          or
+          <div className="h-px flex-1 bg-zinc-800" />
+        </div>
+
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full"
+          onClick={handleGoogle}
+          disabled={loading}
+        >
+          Continue with Google
+        </Button>
 
         <div className="text-center">
           <button

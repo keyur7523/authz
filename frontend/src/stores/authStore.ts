@@ -17,6 +17,7 @@ type AuthState = {
 
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, name: string, password: string) => Promise<void>;
+  loginWithOAuth: (provider: "google" | "github", code: string, state: string) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
   setCurrentOrg: (orgId: string) => void;
@@ -44,6 +45,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await authApi.register(email, name, password);
     const me = await authApi.me();
     set({ user: me, isAuthenticated: true });
+  },
+
+  loginWithOAuth: async (provider, code, state) => {
+    await authApi.oauthCallback(provider, code, state);
+    const me = await authApi.me();
+    set({ user: me, isAuthenticated: true, isLoading: false });
+
+    if (me.organizations.length > 0 && !get().currentOrgId) {
+      get().setCurrentOrg(me.organizations[0].id);
+    }
   },
 
   logout: () => {

@@ -10,6 +10,7 @@ import { Requests } from "./pages/Requests";
 import { Audit } from "./pages/Audit";
 import { Users } from "./pages/Users";
 import { Login } from "./pages/Login";
+import { AuthCallback } from "./pages/AuthCallback";
 import { useAuthStore } from "./stores/authStore";
 import { CreateOrgModal } from "./components/CreateOrgModal";
 
@@ -65,6 +66,7 @@ export function App() {
           isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
         }
       />
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route
         element={
           <ProtectedRoute>

@@ -200,6 +200,18 @@ export const authApi = {
     return data;
   },
 
+  oauthUrl: (provider: "google" | "github") =>
+    apiGet<{ url: string; state: string }>(`/auth/oauth/${provider}`),
+
+  oauthCallback: async (provider: "google" | "github", code: string, state: string) => {
+    const params = new URLSearchParams({ code, state });
+    const data = await apiGet<{ access_token: string; refresh_token: string }>(
+      `/auth/oauth/${provider}/callback?${params}`,
+    );
+    authTokens.setTokens(data.access_token, data.refresh_token);
+    return data;
+  },
+
   logout: () => {
     // Revoke the refresh token server-side; local logout proceeds even if this fails
     if (authTokens.getAccessToken()) {
