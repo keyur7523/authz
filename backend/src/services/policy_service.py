@@ -80,16 +80,6 @@ class PolicyService:
         await self.db.delete(policy)
         await self.db.commit()
 
-    async def toggle_policy(self, policy_id: UUID, is_active: bool) -> Policy:
-        policy = await self.get_policy(policy_id)
-        if not policy:
-            raise NotFound("Policy not found")
-
-        policy.is_active = is_active
-        await self.db.commit()
-        await self.db.refresh(policy)
-        return policy
-
     async def evaluate(
         self,
         org_id: UUID,
@@ -322,31 +312,35 @@ class PolicyService:
             context_value = context.get(key)
 
             if isinstance(condition, dict):
-                for op, expected in condition.items():
-                    if op == "eq" and context_value != expected:
-                        return False
-                    elif op == "neq" and context_value == expected:
-                        return False
-                    elif op == "in" and context_value not in expected:
-                        return False
-                    elif op == "not_in" and context_value in expected:
-                        return False
-                    elif op == "gt" and (
-                        context_value is None or context_value <= expected
-                    ):
-                        return False
-                    elif op == "gte" and (
-                        context_value is None or context_value < expected
-                    ):
-                        return False
-                    elif op == "lt" and (
-                        context_value is None or context_value >= expected
-                    ):
-                        return False
-                    elif op == "lte" and (
-                        context_value is None or context_value > expected
-                    ):
-                        return False
+                # Mismatched types (e.g. str vs int, `in` on a non-list) are a non-match, not a 500
+                try:
+                    for op, expected in condition.items():
+                        if op == "eq" and context_value != expected:
+                            return False
+                        elif op == "neq" and context_value == expected:
+                            return False
+                        elif op == "in" and context_value not in expected:
+                            return False
+                        elif op == "not_in" and context_value in expected:
+                            return False
+                        elif op == "gt" and (
+                            context_value is None or context_value <= expected
+                        ):
+                            return False
+                        elif op == "gte" and (
+                            context_value is None or context_value < expected
+                        ):
+                            return False
+                        elif op == "lt" and (
+                            context_value is None or context_value >= expected
+                        ):
+                            return False
+                        elif op == "lte" and (
+                            context_value is None or context_value > expected
+                        ):
+                            return False
+                except TypeError:
+                    return False
             else:
                 # Simple equality check
                 if context_value != condition:

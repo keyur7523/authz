@@ -1,5 +1,5 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Body, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.schemas.authorize import (
@@ -49,7 +49,7 @@ async def authorize(
 @router.post("/bulk", response_model=BulkAuthorizeResponse)
 async def authorize_bulk(
     org_id: str,
-    requests: list[AuthorizeBulkItem],
+    requests: list[AuthorizeBulkItem] = Body(max_length=100),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

@@ -33,17 +33,3 @@ export function toAccessRequest(req: ApiAccessRequest, roleName?: string): Acces
     risk: "medium", // Would need logic to determine risk
   };
 }
-
-export const mockRequests: AccessRequest[] = [
-  {
-    id: "req_1001",
-    requester: { name: "Ava Chen", email: "ava@company.com" },
-    roleId: "role_admin",
-    roleName: "Admin",
-    scope: "org:heart-artery-vein",
-    reason: "On-call incident response access",
-    createdAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
-    status: "pending",
-    risk: "high",
-  },
-];

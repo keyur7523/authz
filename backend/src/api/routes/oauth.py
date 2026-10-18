@@ -1,5 +1,7 @@
 import secrets
+from datetime import timedelta
 import httpx
+from jose import jwt
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
@@ -9,13 +11,31 @@ from pydantic import BaseModel
 from src.config import settings
 from src.db.database import get_db
 from src.db.models.user import User
-from src.core.security import create_tokens, hash_token
+from src.core.security import create_tokens, hash_token, decode_token, utc_now
 from src.core.exceptions import BadRequest, Unauthorized
 
 router = APIRouter(prefix="/auth/oauth", tags=["oauth"])
 
-# OAuth state storage (in production, use Redis)
-oauth_states: dict[str, dict] = {}
+
+
+def _create_state(provider: str) -> str:
+    """Signed, short-lived state so nothing has to be stored server-side."""
+    payload = {
+        "type": "oauth_state",
+        "provider": provider,
+        "nonce": secrets.token_urlsafe(16),
+        "exp": utc_now() + timedelta(minutes=10),
+    }
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+
+
+def _verify_state(state: str, provider: str):
+    try:
+        payload = decode_token(state)
+    except Exception:
+        raise Unauthorized("Invalid OAuth state")
+    if payload.get("type") != "oauth_state" or payload.get("provider") != provider:
+        raise Unauthorized("Invalid OAuth state")
 
 
 class OAuthUrlResponse(BaseModel):
@@ -44,8 +64,7 @@ async def github_login():
     if not settings.GITHUB_CLIENT_ID:
         raise BadRequest("GitHub OAuth is not configured")
 
-    state = secrets.token_urlsafe(32)
-    oauth_states[state] = {"provider": "github"}
+    state = _create_state("github")
 
     params = {
         "client_id": settings.GITHUB_CLIENT_ID,
@@ -65,10 +84,7 @@ async def github_callback(
     db: AsyncSession = Depends(get_db),
 ):
     """Handle GitHub OAuth callback."""
-    if state not in oauth_states or oauth_states[state].get("provider") != "github":
-        raise Unauthorized("Invalid OAuth state")
-
-    del oauth_states[state]
+    _verify_state(state, "github")
 
     if not settings.GITHUB_CLIENT_ID or not settings.GITHUB_CLIENT_SECRET:
         raise BadRequest("GitHub OAuth is not configured")
@@ -166,8 +182,7 @@ async def google_login():
     if not settings.GOOGLE_CLIENT_ID:
         raise BadRequest("Google OAuth is not configured")
 
-    state = secrets.token_urlsafe(32)
-    oauth_states[state] = {"provider": "google"}
+    state = _create_state("google")
 
     params = {
         "client_id": settings.GOOGLE_CLIENT_ID,
@@ -188,10 +203,7 @@ async def google_callback(
     db: AsyncSession = Depends(get_db),
 ):
     """Handle Google OAuth callback."""
-    if state not in oauth_states or oauth_states[state].get("provider") != "google":
-        raise Unauthorized("Invalid OAuth state")
-
-    del oauth_states[state]
+    _verify_state(state, "google")
 
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise BadRequest("Google OAuth is not configured")

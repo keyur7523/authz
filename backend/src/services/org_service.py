@@ -89,18 +89,6 @@ class OrgService:
         await self.db.refresh(membership)
         return membership
 
-    async def update_member_role(
-        self, org_id: UUID, user_id: UUID, role: OrgMemberRole
-    ) -> OrgMembership:
-        membership = await self.get_membership(org_id, user_id)
-        if not membership:
-            raise NotFound("Membership not found")
-
-        membership.role = role
-        await self.db.commit()
-        await self.db.refresh(membership)
-        return membership
-
     async def remove_member(self, org_id: UUID, user_id: UUID):
         membership = await self.get_membership(org_id, user_id)
         if not membership:

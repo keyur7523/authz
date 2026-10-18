@@ -261,9 +261,3 @@ class RBACService:
             .distinct()
         )
         return list(res.scalars().all())
-
-    async def check_permission(
-        self, org_id: UUID, user_id: UUID, permission: str
-    ) -> bool:
-        permissions = await self.get_user_permissions(org_id, user_id)
-        return permission in permissions

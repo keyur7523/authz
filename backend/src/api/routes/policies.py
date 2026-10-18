@@ -1,5 +1,5 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.schemas.policy import (
@@ -13,33 +13,36 @@ from src.schemas.policy import (
 )
 from src.services.policy_service import PolicyService
 from src.services.org_service import OrgService
+from src.services.audit_service import AuditService
 from src.db.database import get_db
 from src.db.models.user import User
-from src.db.models.organization import OrgMemberRole
-from src.api.dependencies import get_current_user
+from src.api.dependencies import get_current_user, check_org_admin
 from src.core.exceptions import NotFound, Forbidden
 
 router = APIRouter(tags=["policies"])
-
-
-async def _check_org_admin(service: OrgService, org_id: UUID, user_id: UUID):
-    membership = await service.get_membership(org_id, user_id)
-    if not membership:
-        raise Forbidden("Not a member of this organization")
-    if membership.role not in [OrgMemberRole.OWNER, OrgMemberRole.ADMIN]:
-        raise Forbidden("Admin access required")
-    return membership
 
 
 @router.post("/orgs/{org_id}/policies", response_model=PolicyOut)
 async def create_policy(
     org_id: UUID,
     payload: PolicyCreateIn,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _check_org_admin(OrgService(db), org_id, current_user.id)
+    await check_org_admin(OrgService(db), org_id, current_user.id)
     policy = await PolicyService(db).create_policy(org_id, payload)
+    await AuditService(db).log(
+        org_id=org_id,
+        actor_id=current_user.id,
+        actor_email=current_user.email,
+        action="policy.created",
+        resource_type="policy",
+        resource_id=str(policy.id),
+        details={"name": policy.name},
+        request=request,
+    )
+
     return PolicyOut(
         id=str(policy.id),
         org_id=str(policy.org_id),
@@ -126,10 +129,11 @@ async def update_policy(
     org_id: UUID,
     policy_id: UUID,
     payload: PolicyUpdateIn,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _check_org_admin(OrgService(db), org_id, current_user.id)
+    await check_org_admin(OrgService(db), org_id, current_user.id)
 
     service = PolicyService(db)
     policy = await service.get_policy(policy_id)
@@ -137,6 +141,17 @@ async def update_policy(
         raise NotFound("Policy not found")
 
     policy = await service.update_policy(policy_id, payload)
+    await AuditService(db).log(
+        org_id=org_id,
+        actor_id=current_user.id,
+        actor_email=current_user.email,
+        action="policy.updated",
+        resource_type="policy",
+        resource_id=str(policy_id),
+        details=payload.model_dump(mode="json", exclude_none=True),
+        request=request,
+    )
+
     return PolicyOut(
         id=str(policy.id),
         org_id=str(policy.org_id),
@@ -158,10 +173,11 @@ async def update_policy(
 async def delete_policy(
     org_id: UUID,
     policy_id: UUID,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _check_org_admin(OrgService(db), org_id, current_user.id)
+    await check_org_admin(OrgService(db), org_id, current_user.id)
 
     service = PolicyService(db)
     policy = await service.get_policy(policy_id)
@@ -169,6 +185,16 @@ async def delete_policy(
         raise NotFound("Policy not found")
 
     await service.delete_policy(policy_id)
+    await AuditService(db).log(
+        org_id=org_id,
+        actor_id=current_user.id,
+        actor_email=current_user.email,
+        action="policy.deleted",
+        resource_type="policy",
+        resource_id=str(policy_id),
+        details={"name": policy.name},
+        request=request,
+    )
 
 
 @router.post("/orgs/{org_id}/policies/test", response_model=PolicyTestResponse)
