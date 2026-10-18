@@ -69,7 +69,7 @@ export function CreateOrgModal({ onClose }: { onClose?: () => void }) {
               value={slug}
               onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
               placeholder="my-company"
-              pattern="^[a-z0-9-]+$"
+              pattern="[a-z0-9\-]+"
               required
             />
             <p className="text-xs text-[var(--color-text-secondary)] mt-1">
