@@ -9,24 +9,17 @@ import { Link } from "react-router-dom";
 function StatCard({
   label,
   value,
-  icon,
   to,
 }: {
   label: string;
   value: number | string;
-  icon: string;
   to: string;
 }) {
   return (
     <Link to={to}>
       <Card className="hover:border-[var(--color-primary)] transition-colors cursor-pointer">
-        <div className="flex items-center gap-3">
-          <div className="text-2xl">{icon}</div>
-          <div>
-            <div className="text-2xl font-bold">{value}</div>
-            <div className="text-xs text-[var(--color-text-muted)]">{label}</div>
-          </div>
-        </div>
+        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-xs text-[var(--color-text-muted)]">{label}</div>
       </Card>
     </Link>
   );
@@ -58,25 +51,21 @@ export function Dashboard() {
         <StatCard
           label="Roles"
           value={roles.length}
-          icon="🛡️"
           to="/admin/roles"
         />
         <StatCard
           label="Permissions"
           value={permissions.length}
-          icon="🔑"
           to="/admin/permissions"
         />
         <StatCard
           label="Users"
           value={users.length}
-          icon="👥"
           to="/admin/users"
         />
         <StatCard
           label="Audit Events"
           value={auditData?.total ?? 0}
-          icon="📋"
           to="/admin/audit"
         />
       </div>
