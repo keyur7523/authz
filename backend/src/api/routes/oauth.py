@@ -1,4 +1,5 @@
 import secrets
+from urllib.parse import urlencode
 from datetime import timedelta
 import httpx
 from jose import jwt
@@ -72,7 +73,7 @@ async def github_login():
         "scope": "read:user user:email",
         "state": state,
     }
-    url = f"{GITHUB_AUTHORIZE_URL}?{'&'.join(f'{k}={v}' for k, v in params.items())}"
+    url = f"{GITHUB_AUTHORIZE_URL}?{urlencode(params)}"
 
     return OAuthUrlResponse(url=url, state=state)
 
@@ -191,7 +192,7 @@ async def google_login():
         "scope": "openid email profile",
         "state": state,
     }
-    url = f"{GOOGLE_AUTHORIZE_URL}?{'&'.join(f'{k}={v}' for k, v in params.items())}"
+    url = f"{GOOGLE_AUTHORIZE_URL}?{urlencode(params)}"
 
     return OAuthUrlResponse(url=url, state=state)
 

@@ -268,3 +268,17 @@ async def test_bad_input_is_4xx_not_500(client: AsyncClient):
     )
     assert res.status_code == 200
     assert res.json()["allowed"] is False
+
+
+async def test_oauth_login_url_is_encoded_and_state_verifies(client: AsyncClient, monkeypatch):
+    from urllib.parse import parse_qs, urlparse
+    from src.api.routes import oauth
+    from src.config import settings
+
+    monkeypatch.setattr(settings, "GOOGLE_CLIENT_ID", "id")
+    data = (await client.get("/api/auth/oauth/google")).json()
+    query = parse_qs(urlparse(data["url"]).query)
+    assert query["redirect_uri"] == [f"{settings.OAUTH_REDIRECT_URL}?provider=google"]
+    assert query["scope"] == ["openid email profile"]
+    assert query["state"] == [data["state"]]
+    oauth._verify_state(data["state"], "google")
