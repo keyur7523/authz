@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.db.models.access_request import AccessRequest, ApprovalAction, RequestStatus
-from src.db.models.role import UserRole
+from src.db.models.role import Role, UserRole
 from src.core.security import utc_now
 from src.core.exceptions import NotFound, Forbidden, BadRequest
 
@@ -21,12 +21,20 @@ class WorkflowService:
         if not payload.requested_role_id and not payload.requested_permission:
             raise BadRequest("Must request either a role or a permission")
 
+        role_id = None
+        if payload.requested_role_id:
+            try:
+                role_id = UUID(payload.requested_role_id)
+            except ValueError:
+                raise BadRequest("Invalid role id")
+            role = await self.db.get(Role, role_id)
+            if not role or role.org_id != org_id:
+                raise NotFound("Role not found")
+
         request = AccessRequest(
             org_id=org_id,
             requester_id=requester_id,
-            requested_role_id=UUID(payload.requested_role_id)
-            if payload.requested_role_id
-            else None,
+            requested_role_id=role_id,
             requested_permission=payload.requested_permission,
             resource_id=payload.resource_id,
             justification=payload.justification,
@@ -234,11 +242,16 @@ class WorkflowService:
                     UserRole.org_id == request.org_id,
                 )
             )
-            if not existing.scalar_one_or_none():
-                user_role = UserRole(
+            user_role = existing.scalar_one_or_none()
+            if not user_role:
+                self.db.add(UserRole(
                     user_id=request.requester_id,
                     role_id=request.requested_role_id,
                     org_id=request.org_id,
                     assigned_by=assigned_by,
-                )
-                self.db.add(user_role)
+                    expires_at=request.expires_at,
+                ))
+            elif user_role.expires_at is not None:
+                # Re-grant of a time-limited role: replace its expiry (None = permanent)
+                user_role.expires_at = request.expires_at
+                user_role.assigned_by = assigned_by

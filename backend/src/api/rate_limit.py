@@ -5,6 +5,8 @@ from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
+from src.core.security import decode_token
+
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
@@ -96,6 +98,7 @@ class UserRateLimitMiddleware(BaseHTTPMiddleware):
         self.requests_per_minute = requests_per_minute
         self.window_seconds = window_seconds
         self.request_counts: dict[str, list[tuple[float, int]]] = defaultdict(list)
+        self._last_sweep = time.time()
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Skip rate limiting for health check and websocket
@@ -137,25 +140,31 @@ class UserRateLimitMiddleware(BaseHTTPMiddleware):
         return response
 
     def _get_identifier(self, request: Request) -> str:
-        """Get user ID from JWT or fall back to IP."""
+        """Get user ID from a valid JWT or fall back to IP."""
         auth_header = request.headers.get("Authorization", "")
         if auth_header.startswith("Bearer "):
-            # Extract user ID from JWT (simple approach - just use the token hash as identifier)
-            token = auth_header[7:]
-            # Use first 20 chars of token as identifier (unique per user session)
-            return f"token:{token[:20]}"
+            try:
+                user_id = decode_token(auth_header[7:]).get("sub")
+            except Exception:
+                user_id = None
+            if user_id:
+                return f"user:{user_id}"
 
-        # Fall back to IP
+        # Render's proxy appends the real client IP last; earlier entries are client-controlled
         forwarded_for = request.headers.get("X-Forwarded-For")
         if forwarded_for:
-            return f"ip:{forwarded_for.split(',')[0].strip()}"
+            return f"ip:{forwarded_for.split(',')[-1].strip()}"
         return f"ip:{request.client.host if request.client else 'unknown'}"
 
     def _cleanup_old_entries(self, identifier: str, current_time: float):
-        """Remove entries older than the window."""
+        """Remove entries older than the window, and idle identifiers entirely."""
         cutoff = current_time - self.window_seconds
-        self.request_counts[identifier] = [
-            (ts, count)
-            for ts, count in self.request_counts[identifier]
-            if ts > cutoff
-        ]
+        if current_time - self._last_sweep > self.window_seconds:
+            self._last_sweep = current_time
+            for key in [k for k, v in self.request_counts.items() if not v or v[-1][0] <= cutoff]:
+                del self.request_counts[key]
+        recent = [(ts, count) for ts, count in self.request_counts.get(identifier, []) if ts > cutoff]
+        if recent:
+            self.request_counts[identifier] = recent
+        else:
+            self.request_counts.pop(identifier, None)

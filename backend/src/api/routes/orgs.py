@@ -194,6 +194,15 @@ async def remove_member(
     if membership.role not in [OrgMemberRole.OWNER, OrgMemberRole.ADMIN]:
         raise Forbidden("Admin access required")
 
+    target = await service.get_membership(org_id, user_id)
+    if (
+        target
+        and target.role in [OrgMemberRole.OWNER, OrgMemberRole.ADMIN]
+        and membership.role != OrgMemberRole.OWNER
+        and user_id != current_user.id
+    ):
+        raise Forbidden("Owner access required to remove owners or admins")
+
     await service.remove_member(org_id, user_id)
 
 
@@ -211,6 +220,8 @@ async def create_invite(
         raise Forbidden("Not a member of this organization")
     if membership.role not in [OrgMemberRole.OWNER, OrgMemberRole.ADMIN]:
         raise Forbidden("Admin access required")
+    if payload.role == OrgMemberRole.OWNER.value and membership.role != OrgMemberRole.OWNER:
+        raise Forbidden("Owner access required to invite owners")
 
     invite = await service.create_invite(
         org_id, payload.email, current_user.id, payload.role
@@ -301,4 +312,4 @@ async def cancel_invite(
     if membership.role not in [OrgMemberRole.OWNER, OrgMemberRole.ADMIN]:
         raise Forbidden("Admin access required")
 
-    await service.cancel_invite(invite_id)
+    await service.cancel_invite(org_id, invite_id)

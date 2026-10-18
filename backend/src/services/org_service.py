@@ -245,9 +245,9 @@ class OrgService:
         await self.db.refresh(membership)
         return membership
 
-    async def cancel_invite(self, invite_id: UUID) -> OrgInvite:
+    async def cancel_invite(self, org_id: UUID, invite_id: UUID) -> OrgInvite:
         res = await self.db.execute(
-            select(OrgInvite).where(OrgInvite.id == invite_id)
+            select(OrgInvite).where(OrgInvite.id == invite_id, OrgInvite.org_id == org_id)
         )
         invite = res.scalar_one_or_none()
         if not invite:

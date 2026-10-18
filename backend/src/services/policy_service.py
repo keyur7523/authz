@@ -183,7 +183,7 @@ class PolicyService:
         res = await self.db.execute(
             select(Role)
             .join(UserRole)
-            .where(UserRole.org_id == org_id, UserRole.user_id == user_id)
+            .where(UserRole.org_id == org_id, UserRole.user_id == user_id, UserRole.is_active_clause())
         )
         return list(res.scalars().all())
 

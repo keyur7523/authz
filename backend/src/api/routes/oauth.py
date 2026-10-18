@@ -108,26 +108,23 @@ async def github_callback(
 
         user_data = user_response.json()
 
-        # Get primary email
-        email = user_data.get("email")
-        if not email:
-            emails_response = await client.get(
-                GITHUB_EMAILS_URL,
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Accept": "application/json",
-                },
+        # Only trust a verified primary email; we link accounts by email, so an unverified one allows takeover
+        email = None
+        emails_response = await client.get(
+            GITHUB_EMAILS_URL,
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Accept": "application/json",
+            },
+        )
+        if emails_response.status_code == 200:
+            email = next(
+                (e.get("email") for e in emails_response.json() if e.get("primary") and e.get("verified")),
+                None,
             )
-            if emails_response.status_code == 200:
-                emails = emails_response.json()
-                primary_email = next(
-                    (e for e in emails if e.get("primary")), emails[0] if emails else None
-                )
-                if primary_email:
-                    email = primary_email.get("email")
 
         if not email:
-            raise Unauthorized("Could not get email from GitHub")
+            raise Unauthorized("Could not get a verified email from GitHub")
 
     # Find or create user
     user = await _find_or_create_oauth_user(
@@ -233,8 +230,8 @@ async def google_callback(
         user_data = user_response.json()
 
     email = user_data.get("email")
-    if not email:
-        raise Unauthorized("Could not get email from Google")
+    if not email or not user_data.get("verified_email"):
+        raise Unauthorized("Could not get a verified email from Google")
 
     # Find or create user
     user = await _find_or_create_oauth_user(

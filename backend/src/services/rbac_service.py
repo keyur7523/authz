@@ -197,8 +197,19 @@ class RBACService:
                 UserRole.org_id == org_id,
             )
         )
-        if existing.scalar_one_or_none():
-            raise Conflict("User already has this role")
+        user_role = existing.scalar_one_or_none()
+        if user_role:
+            active = await self.db.execute(
+                select(UserRole.id).where(UserRole.id == user_role.id, UserRole.is_active_clause())
+            )
+            if active.scalar_one_or_none():
+                raise Conflict("User already has this role")
+            # Expired grant: make it permanent again
+            user_role.expires_at = None
+            user_role.assigned_by = assigned_by
+            await self.db.commit()
+            await self.db.refresh(user_role)
+            return user_role
 
         user_role = UserRole(
             user_id=user_id,
@@ -231,6 +242,7 @@ class RBACService:
             select(UserRole).where(
                 UserRole.org_id == org_id,
                 UserRole.user_id == user_id,
+                UserRole.is_active_clause(),
             )
         )
         return list(res.scalars().all())

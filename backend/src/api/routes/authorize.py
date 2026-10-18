@@ -12,6 +12,8 @@ from src.services.policy_service import PolicyService
 from src.db.database import get_db
 from src.db.models.user import User
 from src.api.dependencies import get_current_user
+from src.services.org_service import OrgService
+from src.core.exceptions import Forbidden
 
 router = APIRouter(prefix="/authorize", tags=["authorize"])
 
@@ -26,6 +28,9 @@ async def authorize(
     Evaluate a single authorization request.
     Returns whether the action is allowed for the principal on the resource.
     """
+    if not await OrgService(db).get_membership(UUID(payload.org_id), current_user.id):
+        raise Forbidden("Not a member of this organization")
+
     result = await PolicyService(db).evaluate(
         org_id=UUID(payload.org_id),
         principal_id=UUID(payload.principal_id),
@@ -52,6 +57,9 @@ async def authorize_bulk(
     Evaluate multiple authorization requests in bulk.
     More efficient than making multiple single requests.
     """
+    if not await OrgService(db).get_membership(UUID(org_id), current_user.id):
+        raise Forbidden("Not a member of this organization")
+
     request_dicts = [
         {
             "principal_id": r.principal_id,

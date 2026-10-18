@@ -201,6 +201,10 @@ export const authApi = {
   },
 
   logout: () => {
+    // Revoke the refresh token server-side; local logout proceeds even if this fails
+    if (authTokens.getAccessToken()) {
+      fetch(`${API_BASE}/auth/logout`, { method: "POST", headers: authHeaders() }).catch(() => {});
+    }
     authTokens.clear();
   },
 

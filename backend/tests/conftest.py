@@ -1,8 +1,10 @@
 import os
 import sys
 
-# Set test database URL BEFORE importing any app modules
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+# Set test database URL BEFORE importing any app modules.
+# TEST_DATABASE_URL=postgresql+asyncpg://... runs against Postgres; tables are dropped after each test.
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 
 import asyncio
 import pytest
@@ -10,7 +12,7 @@ import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import NullPool, StaticPool
 
 # Now we can safely import the app modules
 from src.db.models.base import Base
@@ -23,8 +25,6 @@ from src.db.models import (  # noqa
 )
 
 
-# Test database URL - using SQLite for tests
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 
 @pytest.fixture(scope="session")
@@ -38,11 +38,15 @@ def event_loop():
 @pytest_asyncio.fixture(scope="function")
 async def test_engine():
     """Create a test engine."""
-    engine = create_async_engine(
-        TEST_DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
+    if TEST_DATABASE_URL.startswith("sqlite"):
+        engine = create_async_engine(
+            TEST_DATABASE_URL,
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+    else:
+        from src.config import settings
+        engine = create_async_engine(settings.ASYNC_DATABASE_URL, poolclass=NullPool)
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import String, Boolean, ForeignKey, DateTime, UniqueConstraint
+from sqlalchemy import String, Boolean, ForeignKey, DateTime, UniqueConstraint, or_
 
 from src.db.models.base import Base
 from src.core.security import utc_now
@@ -91,6 +91,15 @@ class UserRole(Base):
     assigned_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now
     )
+
+    # None = permanent; set for time-limited grants from approved access requests
+    expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    @classmethod
+    def is_active_clause(cls):
+        return or_(cls.expires_at.is_(None), cls.expires_at > utc_now())
 
     __table_args__ = (
         UniqueConstraint("user_id", "role_id", "org_id", name="uq_user_role_org"),

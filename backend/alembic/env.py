@@ -18,10 +18,11 @@ def get_sync_database_url() -> str:
     """Convert database URL to sync format for Alembic migrations."""
     url = settings.DATABASE_URL
     # Convert to psycopg2 format for sync migrations
-    if url.startswith("postgresql+asyncpg://"):
-        url = url.replace("postgresql+asyncpg://", "postgresql://", 1)
-    if url.startswith("postgres://"):
-        url = url.replace("postgres://", "postgresql://", 1)
+    # Name the driver explicitly: SQLAlchemy 2.1 maps bare postgresql:// to psycopg v3, which isn't installed
+    for prefix in ("postgresql+asyncpg://", "postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            url = url.replace(prefix, "postgresql+psycopg2://", 1)
+            break
     # psycopg2 uses 'sslmode' instead of 'ssl'
     url = url.replace("ssl=require", "sslmode=require")
     return url
