@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { panelMotion, scrimMotion } from "../../lib/motion";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
@@ -42,18 +43,13 @@ export function AssignPermissionModal({
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-50 bg-black/40"
+            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]"
             onClick={onClose}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            {...scrimMotion}
           />
           <motion.div
             className="fixed left-1/2 top-1/2 z-[60] w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2"
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.15 }}
+            {...panelMotion}
           >
             <Card>
               <div className="text-sm font-semibold">{title}</div>

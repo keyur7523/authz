@@ -9,6 +9,9 @@ import {
   ScrollText,
 } from "lucide-react";
 import { cn } from "../lib/utils";
+import { panelMotion, project, scrimMotion } from "../lib/motion";
+
+const DRAWER_WIDTH = 256;
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -34,7 +37,7 @@ export function Sidebar({
           to={to}
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+              "press flex items-center gap-2 rounded-lg px-3 py-2 text-sm",
               "hover:bg-[var(--color-surface-hover)]",
               isActive && "bg-[var(--color-surface-hover)]"
             )
@@ -63,17 +66,26 @@ export function Sidebar({
         {open && (
           <>
             <motion.div
-              className="fixed inset-0 z-40 bg-black/40 md:hidden"
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] md:hidden"
               onClick={onClose}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              {...scrimMotion}
             />
             <motion.aside
               className="fixed left-0 top-0 z-50 h-full w-64 bg-[var(--color-surface)] border-r border-[var(--color-border)] md:hidden"
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -20, opacity: 0 }}
+              // Slides in and out along the same edge; drag tracks the finger 1:1
+              initial={{ x: -DRAWER_WIDTH }}
+              animate={{ x: 0 }}
+              exit={{ x: -DRAWER_WIDTH }}
+              transition={panelMotion.transition}
+              drag="x"
+              dragConstraints={{ left: -DRAWER_WIDTH, right: 0 }}
+              dragElastic={{ left: 0, right: 0.1 }}
+              dragMomentum={false}
+              dragSnapToOrigin
+              onDragEnd={(_, info) => {
+                // Decide from where the flick is heading, not where the finger let go
+                if (info.offset.x + project(info.velocity.x) < -DRAWER_WIDTH / 2) onClose();
+              }}
             >
               <div className="px-4 py-3 font-semibold">AuthZ Platform</div>
               {Nav}

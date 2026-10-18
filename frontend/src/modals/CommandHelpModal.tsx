@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { panelMotion, scrimMotion } from "../lib/motion";
 import { Card } from "../components/ui/Card";
 
 export function CommandHelpModal({
@@ -13,17 +14,13 @@ export function CommandHelpModal({
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-50 bg-black/40"
+            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]"
             onClick={onClose}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            {...scrimMotion}
           />
           <motion.div
             className="fixed left-1/2 top-1/2 z-[60] w-[90vw] max-w-md -translate-x-1/2 -translate-y-1/2"
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
+            {...panelMotion}
           >
             <Card>
               <div className="text-sm font-semibold mb-2">Keyboard shortcuts</div>

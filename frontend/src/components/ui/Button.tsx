@@ -30,6 +30,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <motion.button
         ref={ref}
         whileTap={{ scale: 0.97 }}
+        transition={{ type: "spring", bounce: 0, duration: 0.15 }}
         className={cn(
           "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)]",
