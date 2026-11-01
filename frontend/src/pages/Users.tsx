@@ -79,7 +79,7 @@ export function Users() {
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-lg font-semibold">Users</div>
+            <div className="font-display text-3xl font-semibold">Users</div>
             <div className="mt-1 text-sm text-[var(--color-text-muted)]">
               Manage users and their role assignments.
             </div>

@@ -142,7 +142,7 @@ export function Permissions() {
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-lg font-semibold">Permissions</div>
+            <div className="font-display text-3xl font-semibold">Permissions</div>
             <div className="mt-1 text-sm text-[var(--color-text-muted)]">
               Manage permissions and assign them to roles.
             </div>

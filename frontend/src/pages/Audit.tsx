@@ -100,7 +100,7 @@ export function Audit() {
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-lg font-semibold">Audit Log</div>
+            <div className="font-display text-3xl font-semibold">Audit Log</div>
             <div className="mt-1 text-sm text-[var(--color-text-muted)]">
               Immutable record of authorization and admin actions.
             </div>

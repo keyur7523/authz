@@ -20,8 +20,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-950">
-        <div className="text-zinc-400">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
+        <div className="text-[var(--color-text-muted)]">Loading...</div>
       </div>
     );
   }
@@ -33,7 +33,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   // Show create org modal if user has no organizations
   if (user && user.organizations.length === 0) {
     return (
-      <div className="min-h-screen bg-zinc-950">
+      <div className="min-h-screen bg-[var(--color-bg)]">
         <CreateOrgModal />
       </div>
     );
@@ -42,7 +42,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   // Show create org modal if no org is selected
   if (user && !currentOrgId) {
     return (
-      <div className="min-h-screen bg-zinc-950">
+      <div className="min-h-screen bg-[var(--color-bg)]">
         <CreateOrgModal />
       </div>
     );

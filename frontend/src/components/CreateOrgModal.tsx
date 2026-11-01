@@ -36,7 +36,7 @@ export function CreateOrgModal({ onClose }: { onClose?: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="w-full max-w-md rounded-lg bg-[var(--color-surface)] p-6 shadow-xl">
-        <h2 className="text-xl font-semibold mb-4">Create Organization</h2>
+        <h2 className="font-display text-2xl font-semibold mb-4">Create Organization</h2>
         <p className="text-sm text-[var(--color-text-secondary)] mb-6">
           You need to create an organization to get started.
         </p>
@@ -78,7 +78,7 @@ export function CreateOrgModal({ onClose }: { onClose?: () => void }) {
           </div>
 
           {error && (
-            <div className="text-red-400 text-sm bg-red-400/10 p-3 rounded-lg">
+            <div className="text-[var(--color-error-text)] text-sm bg-[var(--color-error-muted)] p-3 rounded-lg">
               {error}
             </div>
           )}

@@ -13,11 +13,11 @@ interface ButtonProps extends HTMLMotionProps<"button"> {
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "primary", size = "md", isLoading, disabled, children, ...props }, ref) => {
     const variants = {
-      primary: "bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white",
+      primary: "bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[var(--color-on-accent)]",
       secondary: "bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]",
       ghost: "hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]",
-      danger: "bg-[var(--color-error)] hover:bg-[var(--color-error-hover)] text-white",
-      success: "bg-[var(--color-success)] hover:bg-[var(--color-success-hover)] text-white",
+      danger: "bg-[var(--color-error)] hover:bg-[var(--color-error-hover)] text-[var(--color-on-accent)]",
+      success: "bg-[var(--color-success)] hover:bg-[var(--color-success-hover)] text-[var(--color-on-accent)]",
     };
 
     const sizes = {
@@ -32,7 +32,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         whileTap={{ scale: 0.97 }}
         transition={{ type: "spring", bounce: 0, duration: 0.15 }}
         className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors",
+          "inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-colors",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)]",
           "disabled:opacity-50 disabled:pointer-events-none",
           variants[variant],

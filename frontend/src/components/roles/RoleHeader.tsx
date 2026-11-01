@@ -55,14 +55,14 @@ export function RoleHeader({
             </>
           ) : (
             <>
-              <div className="text-lg font-semibold">{roleName}</div>
+              <div className="font-display text-3xl font-semibold">{roleName}</div>
               <div className="text-sm text-[var(--color-text-muted)]">
                 {roleDesc}
               </div>
             </>
           )}
           {updateMutation.isError && (
-            <div className="text-xs text-red-400">
+            <div className="text-xs text-[var(--color-error-text)]">
               Failed to update role. Please try again.
             </div>
           )}

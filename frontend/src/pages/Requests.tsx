@@ -133,7 +133,7 @@ export function Requests() {
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-lg font-semibold">Access Requests</div>
+            <div className="font-display text-3xl font-semibold">Access Requests</div>
             <div className="mt-1 text-sm text-[var(--color-text-muted)]">
               Review and approve access requests.
             </div>

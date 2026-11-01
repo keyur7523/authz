@@ -26,6 +26,12 @@ export const useThemeStore = create<ThemeState>()(
         set({ theme, resolvedTheme: resolved });
       },
     }),
-    { name: "authz-theme" }
+    {
+      name: "authz-theme",
+      // The class lives on <html>, not in storage, so restore it after a reload
+      onRehydrateStorage: () => (state) => {
+        document.documentElement.classList.toggle("light", state?.resolvedTheme === "light");
+      },
+    }
   )
 );

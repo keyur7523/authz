@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
+  KeyRound,
   ShieldCheck,
   Key,
   Users,
@@ -22,6 +23,13 @@ const nav = [
   { to: "/admin/audit", label: "Audit Log", icon: ScrollText },
 ];
 
+const Brand = (
+  <div className="flex items-center gap-2 px-4 py-4 font-display text-lg font-semibold text-[var(--color-rail-text)]">
+    <KeyRound className="h-5 w-5 text-[var(--color-rail-accent)]" />
+    AuthZ
+  </div>
+);
+
 export function Sidebar({
   open,
   onClose,
@@ -38,8 +46,9 @@ export function Sidebar({
           className={({ isActive }) =>
             cn(
               "press flex items-center gap-2 rounded-lg px-3 py-2 text-sm",
-              "hover:bg-[var(--color-surface-hover)]",
-              isActive && "bg-[var(--color-surface-hover)]"
+              "text-[var(--color-rail-muted)] hover:bg-[var(--color-rail-hover)] hover:text-[var(--color-rail-text)]",
+              isActive &&
+                "bg-[var(--color-rail-hover)] font-medium text-[var(--color-rail-accent)] shadow-[inset_3px_0_0_var(--color-rail-accent)]"
             )
           }
         >
@@ -53,11 +62,8 @@ export function Sidebar({
   return (
     <>
       {/* Desktop */}
-      <aside className="hidden w-64 border-r border-[var(--color-border)] bg-[var(--color-surface)] md:block">
-        <div className="px-4 py-3 text-sm font-semibold flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4" />
-          AuthZ Platform
-        </div>
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-[var(--color-rail-line)] bg-[var(--color-rail)] md:block">
+        {Brand}
         {Nav}
       </aside>
 
@@ -71,7 +77,7 @@ export function Sidebar({
               {...scrimMotion}
             />
             <motion.aside
-              className="fixed left-0 top-0 z-50 h-full w-64 bg-[var(--color-surface)] border-r border-[var(--color-border)] md:hidden"
+              className="fixed left-0 top-0 z-50 h-full w-64 bg-[var(--color-rail)] border-r border-[var(--color-rail-line)] md:hidden"
               // Slides in and out along the same edge; drag tracks the finger 1:1
               initial={{ x: -DRAWER_WIDTH }}
               animate={{ x: 0 }}
@@ -87,7 +93,7 @@ export function Sidebar({
                 if (info.offset.x + project(info.velocity.x) < -DRAWER_WIDTH / 2) onClose();
               }}
             >
-              <div className="px-4 py-3 font-semibold">AuthZ Platform</div>
+              {Brand}
               {Nav}
             </motion.aside>
           </>
