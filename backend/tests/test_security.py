@@ -270,6 +270,33 @@ async def test_bad_input_is_4xx_not_500(client: AsyncClient):
     assert res.json()["allowed"] is False
 
 
+async def test_deny_policy_fails_closed_on_mismatched_types(client: AsyncClient):
+    owner, owner_id = await register(client, "owner@a.com")
+    org = await create_org(client, owner, "org-a")
+    base = {"actions": ["*"], "resources": ["*"], "principals": {"users": [owner_id]}}
+    for policy in (
+        {**base, "name": "allow-all", "effect": "allow"},
+        {**base, "name": "deny-big", "effect": "deny", "conditions": {"amount": {"gt": 1000}, "region": "eu"}},
+    ):
+        assert (await client.post(f"/api/orgs/{org}/policies", json=policy, headers=owner)).status_code == 200
+
+    async def allowed(context: dict) -> bool:
+        res = await client.post(
+            f"/api/orgs/{org}/policies/test",
+            json={"principal_id": owner_id, "action": "a", "resource": "r", "context": context},
+            headers=owner,
+        )
+        assert res.status_code == 200
+        return res.json()["allowed"]
+
+    assert await allowed({"amount": 5, "region": "eu"})
+    assert not await allowed({"amount": 5000, "region": "eu"})
+    # A string amount can't be compared, so the deny still applies
+    assert not await allowed({"amount": "5000", "region": "eu"})
+    # ...but its other conditions are still checked
+    assert await allowed({"amount": "5000", "region": "us"})
+
+
 async def test_oauth_login_url_is_encoded_and_state_verifies(client: AsyncClient, monkeypatch):
     from urllib.parse import parse_qs, urlparse
     from src.api.routes import oauth

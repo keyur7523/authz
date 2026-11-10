@@ -121,7 +121,7 @@ class PolicyService:
             if not self._match_resource(policy.resources, resource):
                 continue
             if policy.conditions and not self._evaluate_conditions(
-                policy.conditions, context
+                policy.conditions, context, on_type_error=policy.effect == "deny"
             ):
                 continue
 
@@ -300,7 +300,9 @@ class PolicyService:
             "warnings": warnings,
         }
 
-    def _evaluate_conditions(self, conditions: dict, context: dict) -> bool:
+    def _evaluate_conditions(
+        self, conditions: dict, context: dict, on_type_error: bool = False
+    ) -> bool:
         """
         Evaluate conditions against context.
         Supports basic operators: eq, neq, in, not_in, gt, gte, lt, lte
@@ -312,7 +314,8 @@ class PolicyService:
             context_value = context.get(key)
 
             if isinstance(condition, dict):
-                # Mismatched types (e.g. str vs int, `in` on a non-list) are a non-match, not a 500
+                # Mismatched types (e.g. str vs int, `in` on a non-list) can't be compared;
+                # the caller decides the outcome so deny policies fail closed
                 try:
                     for op, expected in condition.items():
                         if op == "eq" and context_value != expected:
@@ -340,7 +343,8 @@ class PolicyService:
                         ):
                             return False
                 except TypeError:
-                    return False
+                    if not on_type_error:
+                        return False
             else:
                 # Simple equality check
                 if context_value != condition:
